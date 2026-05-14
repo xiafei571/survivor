@@ -1,0 +1,3 @@
+# Vortex Survivor
+
+Vortex Survivor is a dark-fantasy pixel survival demo built in Astrocade: the player moves through waves of enemies, collects EXP crystals to level up, chooses randomized upgrades, and builds around relics such as Vampire Mask, Hero Sword, Magic Shield, Black Rod, and elemental relics. The game now includes animated player sprites, custom projectile/pickup/relic icons, persistent enemy attack cooldowns, elite encounters like S1 Frost Phoenix and S2 Fire Phoenix, and elemental systems including ice slows, blizzards, fire burns, delayed fire explosions, shield-break bursts, and relic-specific upgrades.
