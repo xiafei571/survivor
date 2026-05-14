@@ -1,0 +1,64 @@
+// Asset Map (Read-Only)
+// Edit assets in the Media tab.
+// Use these IDs alongside lib to reference assets in your code:
+//
+// Example: lib.getAsset["player_sprite"]
+
+const assets = {
+  "hero-idle": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778485287349_01KRAZQPDN8B459JSYRDSXZ2HF.hero-idle.png",
+    "type": "image",
+    "aspect_ratio": [
+      192,
+      32
+    ]
+  },
+  "hero-attack": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778485287402_01KRAZQPFAA1JN485K1M85TZT6.hero-attack.png",
+    "type": "image",
+    "aspect_ratio": [
+      192,
+      32
+    ]
+  },
+  "hero-run": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778485287588_01KRAZQPN30N2T3AQW9ZEC7TVP.hero-run.png",
+    "type": "image",
+    "aspect_ratio": [
+      192,
+      32
+    ]
+  },
+  "hero-hurt": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778485437358_01KRAZW8XE3DCC866KDFXKYK35.hero-hurt.png",
+    "type": "image",
+    "aspect_ratio": [
+      192,
+      32
+    ]
+  },
+  "hero-death": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778485437278_01KRAZW8TY8T778M9PX4ZX4GZ6.hero-death.png",
+    "type": "image",
+    "aspect_ratio": [
+      192,
+      32
+    ]
+  },
+  "hero-single-32": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778486238130_01KRB0MPXHE690N4R06JQAPTSC.hero-single-32.png",
+    "type": "image",
+    "aspect_ratio": [
+      32,
+      32
+    ]
+  },
+  "hero-128": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778486382928_01KRB0S4AGJRTXY50SH217837M.hero-single-preview-128.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  }
+};

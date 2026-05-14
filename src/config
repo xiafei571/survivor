@@ -1,0 +1,9 @@
+{
+  "playerSpeed": 200,
+  "playerMaxHP": 100,
+  "enemySpeed": 80,
+  "enemySpawnInterval": 1,
+  "bulletSpeed": 400,
+  "fireRate": 0.8,
+  "enemyDamage": 10
+}
