@@ -60,5 +60,293 @@ const assets = {
       128,
       128
     ]
+  },
+  "relic-black-rod-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778489328510_01KRB3K0VYNJCHCX7B5SQY2X9R.relic-black-rod.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-magic-shield-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778489328571_01KRB3K0XV1TXT23FGDEBBGFJ7.relic-magic-shield.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-vampire-mask-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778489325690_01KRB3JY3T55BRGG87JPGZ7FMZ.relic-vampire-mask.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-red-mushroom-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778489889729_01KRB444Y1NR7JRAQGNVSWYVDB.relic-red-mushroom.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-gravity-glove-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778489886834_01KRB4423JKW7TXGFHDY2Q4HGY.relic-gravity-glove.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-hero-sword-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778489887107_01KRB442C3KHTA3JQ87T8P4KZD.relic-hero-sword.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "knife-projectile": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778495083323_01KRB92MSVAC7SWVBDXXDE0W62.knife-projectile.png",
+    "type": "image",
+    "aspect_ratio": [
+      96,
+      32
+    ]
+  },
+  "black-rod-projectile": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778495080293_01KRB92HV5QBQ0T9V6D28SN0G7.black-rod-projectile.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      32
+    ]
+  },
+  "health-heart": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778496307726_01KRBA80GE2DF4VP6CPBNJNWD3.health-heart.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "exp-crystal-large": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778496307745_01KRBA80H1X4S93EQ14ZPNZZWK.exp-crystal-large.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "exp-crystal-small": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778496304790_01KRBA7XMNN3QHQ82TXCZB7FW6.exp-crystal-small.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "relic-ice-shield-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778501203110_01KRBEXD56BV6GVMA0SXBFZT1B.relic-ice-shield.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-ice-staff-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778501203046_01KRBEXD36XHCYK8F9HWGBW649.relic-ice-staff.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-ice-blade-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778501200286_01KRBEXACYZR3YXKEMC2VZ0BT6.relic-ice-blade.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "ice-blade-projectile": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778506803511_01KRBM8A9QPW4TR7P8RPJ6PRV7.ice-blade-projectile.png",
+    "type": "image",
+    "aspect_ratio": [
+      96,
+      32
+    ]
+  },
+  "relic-fire-heart-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778509811028_01KRBQ43AM5HAQR3BEXPJTKWB5.relic-fire-heart.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "relic-fire-staff-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778509811529_01KRBQ43T9T1RV6T74HET6H0TS.relic-fire-staff.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "fire-explosion-effect": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778509808639_01KRBQ40ZZ3ZF2PNRTF1PJ9CCN.fire-explosion-effect.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "fireball-projectile": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778509847142_01KRBQ56K65DSZZNEWAQDTZCRB.fireball-projectile.png",
+    "type": "image",
+    "aspect_ratio": [
+      96,
+      32
+    ]
+  },
+  "relic-fire-armor-icon": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778509847153_01KRBQ56KHFGTTZ5WKWV2MXXEV.relic-fire-armor.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "hero-sword-slash-small": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778766044667_01KRKBFQFV0170AC1Z0EPR8HA8.hero-sword-slash-small.png",
+    "type": "image",
+    "aspect_ratio": [
+      128,
+      128
+    ]
+  },
+  "big-fireball-projectile": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778770949055_01KRKG5CXZ0687SVXRCHHPRE2Q.big-fireball-projectile.png",
+    "type": "image",
+    "aspect_ratio": [
+      144,
+      48
+    ]
+  },
+  "goblin-hurt": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778815564490_01KRMTPYPAAC9D78B8XS2B18T1.goblin-hurt.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-death": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778815567420_01KRMTQ1HWDE1KASA3TVBWV1QW.goblin-death.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-run": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778815567401_01KRMTQ1H97XD2JG3329WGM5PW.goblin-run.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-idle": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778815603128_01KRMTR4DFQECTYS0983A5W27E.goblin-idle.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-walk": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778816069132_01KRMV6BGCB5ACJMCNCYNAEJ4Q.goblin-walk.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-attack": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778816068893_01KRMV6B8XR502C04NJG04PJ88.goblin-attack.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-attack": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778818870110_01KRMXVTTYPY5T634TA4Y88WHB.goblin-king-attack.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-idle": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778818873020_01KRMXVXNW07ZW4KYDTPXB3H1Q.goblin-king-idle.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-death": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778818873032_01KRMXVXP817X469AM8BVD734M.goblin-king-death.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-hurt": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778819028732_01KRMY0NQW7YA13MWQ1WEJ5XSS.goblin-king-hurt.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-attack-2": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778820463929_01KRMZCF9SWJAD09TZPKZC6TT2.goblin-king-attack-2.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-attack-1": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778820466832_01KRMZCJ4GV3GJR9R6K8ZQ9X4E.goblin-king-attack-1.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-walk": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778822023636_01KRN0W2EM92W7GN4CBJAC6K2P.goblin-king-walk.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
+  },
+  "goblin-king-walk-2": {
+    "url": "https://dzmv1mxivz48k.cloudfront.net/images/Google_100639608829917482050/1778822020880_01KRN0VZRG9XE9369948Z9KZ78.goblin-king-walk-2.png",
+    "type": "image",
+    "aspect_ratio": [
+      64,
+      64
+    ]
   }
 };

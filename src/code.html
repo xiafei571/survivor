@@ -461,6 +461,36 @@
             const fireballProjectileAssets = ['fireball-projectile'];
             const bigFireballProjectileAssets = ['big-fireball-projectile', 'fireball-projectile-large'];
             const fireExplosionAssets = ['fire-explosion-effect'];
+            const goblinSprites = {
+                idle: null,
+                walk: null,
+                run: null,
+                attack: null,
+                hurt: null,
+                death: null
+            };
+            const goblinSpriteAssets = {
+                idle: ['goblin-idle'],
+                walk: ['goblin-walk', 'goblin-run'],
+                run: ['goblin-run'],
+                attack: ['goblin-attack'],
+                hurt: ['goblin-hurt'],
+                death: ['goblin-death']
+            };
+            const goblinKingSprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const goblinKingSpriteAssets = {
+                idle: ['goblin-king-idle'],
+                walk: ['goblin-king-walk', 'goblin-king-walk-2'],
+                attack: ['goblin-king-attack-1', 'goblin-king-attack', 'goblin-king-attack-2'],
+                hurt: ['goblin-king-hurt-2'],
+                death: ['goblin-king-death']
+            };
             const pickupSprites = {
                 expSmall: null,
                 expLarge: null,
@@ -673,6 +703,52 @@
                         });
                     }
 
+                    await Promise.all(Object.keys(goblinSprites).map(async (state) => {
+                        const asset = goblinSpriteAssets[state]
+                            .map(id => lib.getAsset(id))
+                            .find(candidate => candidate && candidate.url);
+                        if (!asset || !asset.url) return;
+
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        await new Promise((resolve) => {
+                            img.onload = () => {
+                                goblinSprites[state] = img;
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                lib.log(`Failed to load goblin ${state} sprite`);
+                                resolve();
+                            };
+                            img.src = asset.url;
+                        });
+                    }));
+
+                    await Promise.all(Object.entries(goblinKingSpriteAssets).flatMap(([state, assetIds]) => {
+                        return assetIds.map((assetId) => {
+                            const asset = lib.getAsset(assetId);
+                            if (!asset || !asset.url) return Promise.resolve();
+
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            return new Promise((resolve) => {
+                                img.onload = () => {
+                                    if (Array.isArray(goblinKingSprites[state])) {
+                                        goblinKingSprites[state].push(img);
+                                    } else {
+                                        goblinKingSprites[state] = img;
+                                    }
+                                    resolve();
+                                };
+                                img.onerror = () => {
+                                    lib.log(`Failed to load goblin king ${assetId} sprite`);
+                                    resolve();
+                                };
+                                img.src = asset.url;
+                            });
+                        });
+                    }));
+
                     await Promise.all(Object.entries(pickupSpriteAssets).map(([key, assetIds]) => {
                         const asset = assetIds.map(id => lib.getAsset(id)).find(candidate => candidate && candidate.url);
                         if (!asset || !asset.url) return Promise.resolve();
@@ -746,6 +822,8 @@
             const MAX_ENEMIES = 200;
             const INVULNERABILITY_TIME = 0.5;
             const PICKUP_RADIUS = 12;
+            const PICKUP_LIFETIME = 15;
+            const PICKUP_BLINK_START = 10;
             const PICKUP_ATTRACTION_RADIUS = 150;
             const ENHANCED_PICKUP_ATTRACTION_RADIUS = 300;
             const RELIC_NAMES = ['Vampire Mask', 'Hero Sword', 'Red Mushroom', 'Gravity Glove', 'Magic Shield', 'Black Rod'];
@@ -822,6 +900,7 @@
             let blizzards = [];
             let fireHazards = [];
             let fireExplosions = [];
+            let enemyDeathEffects = [];
             let spawnedElites = new Set();
             let kills = 0;
             let spawnTimer = 0;
@@ -991,6 +1070,7 @@
                 blizzards = [];
                 fireHazards = [];
                 fireExplosions = [];
+                enemyDeathEffects = [];
                 spawnedElites = new Set();
                 kills = 0;
                 spawnTimer = 0;
@@ -1151,7 +1231,10 @@
                     iceSlowTimer: 0,
                     blizzardSlowTimer: 0,
                     slowTimer: 0,
-                    slowAmount: 0.5
+                    slowAmount: 0.5,
+                    hurtTimer: 0,
+                    attackAnimTimer: 0,
+                    facing: 1
                 });
 
                 // Limit enemies
@@ -1167,16 +1250,16 @@
                 enemies.push({
                     x,
                     y,
-                    hp: stats.hp * 10,
-                    maxHp: stats.hp * 10,
+                    hp: stats.hp * 20,
+                    maxHp: stats.hp * 20,
                     speed: stats.speed * 0.82,
                     expReward: stats.expReward,
                     wave: eliteWave,
                     eliteId: 'S1',
-                    eliteName: 'Frost Phoenix',
+                    eliteName: 'Goblin King',
                     sizeScale: 2,
                     attackRange: 100,
-                    damageBonus: 5,
+                    damageBonus: config.enemyDamage,
                     attackCooldown: 0,
                     bleedingTimer: 0,
                     fireBurnTimer: 0,
@@ -1184,7 +1267,10 @@
                     iceSlowTimer: 0,
                     blizzardSlowTimer: 0,
                     slowTimer: 0,
-                    slowAmount: 0.5
+                    slowAmount: 0.5,
+                    hurtTimer: 0,
+                    attackAnimTimer: 0,
+                    facing: 1
                 });
                 spawnedElites.add('S1');
             }
@@ -1214,7 +1300,10 @@
                     iceSlowTimer: 0,
                     blizzardSlowTimer: 0,
                     slowTimer: 0,
-                    slowAmount: 0.5
+                    slowAmount: 0.5,
+                    hurtTimer: 0,
+                    attackAnimTimer: 0,
+                    facing: 1
                 });
                 spawnedElites.add('S2');
             }
@@ -1225,21 +1314,21 @@
                 // drop small crystals; each wave above 1 adds 10% large-crystal chance.
                 const largeCrystalChance = Math.max(0, Math.min(1, (enemyWave - 1) * 0.1));
                 const isLargeCrystal = Math.random() < largeCrystalChance;
-                pickups.push({
+                pickups.push(createPickup({
                     x,
                     y,
                     type: 'exp',
                     value: isLargeCrystal ? 5 : 1,
                     crystalSize: isLargeCrystal ? 'large' : 'small'
-                });
+                }));
 
                 // 10% chance for health pack
                 if (Math.random() < 0.1) {
-                    pickups.push({
+                    pickups.push(createPickup({
                         x,
                         y,
                         type: 'health'
-                    });
+                    }));
                 }
                 
                 // 50% chance for relic (only if not already dropped)
@@ -1248,12 +1337,12 @@
                     if (availableRelics.length > 0) {
                         const relic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
                         droppedRelics.add(relic);
-                        pickups.push({
+                        pickups.push(createPickup({
                             x,
                             y,
                             type: 'relic',
                             relicName: relic
-                        });
+                        }));
                     }
                 }
             }
@@ -1275,6 +1364,27 @@
                     result.push(pool.splice(index, 1)[0]);
                 }
                 return result;
+            }
+
+            function createPickup(data) {
+                return {
+                    ...data,
+                    lifetime: PICKUP_LIFETIME,
+                    maxLifetime: PICKUP_LIFETIME
+                };
+            }
+
+            function getPickupDrawAlpha(pickup) {
+                if (pickup.type === 'relic' || pickup.lifetime == null || pickup.maxLifetime == null) {
+                    return 1;
+                }
+
+                const age = pickup.maxLifetime - pickup.lifetime;
+                if (age < PICKUP_BLINK_START) {
+                    return 1;
+                }
+
+                return Math.sin(gameTime * 24) > 0 ? 1 : 0.28;
             }
 
             function getPickupAttractionRadius() {
@@ -1299,6 +1409,41 @@
                 return player.fireArmorHasteTimer > 0 ? config.fireRate * 0.5 : config.fireRate;
             }
 
+            function isLevelOneGoblin(enemy) {
+                return enemy && enemy.wave === 1 && !enemy.eliteId;
+            }
+
+            function isGoblinKingElite(enemy) {
+                return enemy && enemy.eliteId === 'S1';
+            }
+
+            function getEnemyFacingTowardPlayer(enemy, dxToPlayer) {
+                if (isGoblinKingElite(enemy)) {
+                    return dxToPlayer < 0 ? 1 : -1;
+                }
+                return dxToPlayer < 0 ? -1 : 1;
+            }
+
+            function markEnemyHit(enemy) {
+                if (isLevelOneGoblin(enemy) || isGoblinKingElite(enemy)) {
+                    enemy.hurtTimer = 0.18;
+                }
+            }
+
+            function addEnemyDeathEffect(enemy) {
+                if (!isLevelOneGoblin(enemy) && !isGoblinKingElite(enemy)) return;
+
+                enemyDeathEffects.push({
+                    x: enemy.x,
+                    y: enemy.y,
+                    spriteSet: isGoblinKingElite(enemy) ? 'goblinKing' : 'goblin',
+                    size: isGoblinKingElite(enemy) ? 92 : 54,
+                    facing: enemy.facing || 1,
+                    lifetime: 0.45,
+                    maxLifetime: 0.45
+                });
+            }
+
             function isRelicUpgraded(relicName) {
                 const upgradeKeys = {
                     'Vampire Mask': 'vampireMask',
@@ -1319,12 +1464,12 @@
             }
 
             function dropSpecificRelic(x, y, relicName) {
-                pickups.push({
+                pickups.push(createPickup({
                     x,
                     y,
                     type: 'relic',
                     relicName
-                });
+                }));
             }
 
             // Activate relic effect
@@ -1371,6 +1516,7 @@
                 kills++;
                 const isS1Elite = enemy.eliteId === 'S1';
                 const isS2Elite = enemy.eliteId === 'S2';
+                addEnemyDeathEffect(enemy);
                 
                 // Vampire Mask: recover HP on kill
                 if (player.relics.includes('Vampire Mask')) {
@@ -1653,6 +1799,7 @@
                     const dy = enemies[i].y - y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     if (dist <= radius + ENEMY_RADIUS * (enemies[i].sizeScale || 1)) {
+                        markEnemyHit(enemies[i]);
                         enemies[i].hp -= damage;
                         if (enemies[i].hp <= 0) {
                             killEnemy(enemies[i]);
@@ -1735,6 +1882,205 @@
                 const dy = y2 - y1;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 return dist < r1 + r2;
+            }
+
+            function drawSpriteImage(sprite, x, y, size, facing = 1, alpha = 1, offsetY = 0) {
+                if (!sprite || !sprite.complete || sprite.naturalWidth <= 0) return false;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.translate(x, y + offsetY);
+                ctx.scale(facing, 1);
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(sprite, -size / 2, -size / 2, size, size);
+                ctx.restore();
+                return true;
+            }
+
+            function hasIceStatus(enemy) {
+                return (enemy.iceSlow || 0) > 0 || enemy.blizzardSlowTimer > 0 || enemy.slowTimer > 0;
+            }
+
+            function getEnemyStatusTints(enemy, includeHitFlash = true) {
+                const tints = [];
+                if (includeHitFlash && enemy.hurtTimer > 0) {
+                    tints.push('rgba(255, 255, 255, 0.42)');
+                    tints.push('rgba(255, 45, 45, 0.28)');
+                }
+                if (hasIceStatus(enemy)) {
+                    tints.push('rgba(95, 210, 255, 0.32)');
+                }
+                if (enemy.fireBurnTimer > 0) {
+                    const pulse = 0.22 + (Math.sin(gameTime * 18) + 1) * 0.08;
+                    tints.push(`rgba(255, 92, 24, ${pulse})`);
+                }
+                if (enemy.bleedingTimer > 0) {
+                    tints.push('rgba(150, 0, 30, 0.38)');
+                }
+                return tints;
+            }
+
+            const enemySpriteBuffer = document.createElement('canvas');
+            const enemySpriteBufferCtx = enemySpriteBuffer.getContext('2d');
+
+            function applyEnemyStatusTints(targetCtx, enemy, size, includeHitFlash = true) {
+                const tints = getEnemyStatusTints(enemy, includeHitFlash);
+                if (tints.length === 0) return;
+
+                targetCtx.globalCompositeOperation = 'source-atop';
+                for (const tint of tints) {
+                    targetCtx.fillStyle = tint;
+                    targetCtx.fillRect(0, 0, size, size);
+                }
+                targetCtx.globalCompositeOperation = 'source-over';
+            }
+
+            function renderEnemySpriteFrame(sprite, enemy, size, includeHitFlash = true) {
+                const bufferSize = Math.ceil(size);
+                if (enemySpriteBuffer.width !== bufferSize || enemySpriteBuffer.height !== bufferSize) {
+                    enemySpriteBuffer.width = bufferSize;
+                    enemySpriteBuffer.height = bufferSize;
+                }
+
+                enemySpriteBufferCtx.clearRect(0, 0, bufferSize, bufferSize);
+                enemySpriteBufferCtx.imageSmoothingEnabled = false;
+                enemySpriteBufferCtx.drawImage(sprite, 0, 0, bufferSize, bufferSize);
+                applyEnemyStatusTints(enemySpriteBufferCtx, enemy, bufferSize, includeHitFlash);
+                return enemySpriteBuffer;
+            }
+
+            function drawEnemyStatusParticles(enemy, radius) {
+                ctx.save();
+                ctx.lineCap = 'round';
+
+                if (hasIceStatus(enemy)) {
+                    ctx.fillStyle = 'rgba(205, 245, 255, 0.75)';
+                    ctx.strokeStyle = 'rgba(120, 220, 255, 0.55)';
+                    for (let i = 0; i < 6; i++) {
+                        const angle = gameTime * 0.8 + i * Math.PI * 0.67;
+                        const distance = radius * (0.62 + 0.16 * Math.sin(gameTime * 2 + i));
+                        const x = enemy.x + Math.cos(angle) * distance;
+                        const y = enemy.y + Math.sin(angle) * distance;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.moveTo(x - 3, y);
+                        ctx.lineTo(x + 3, y);
+                        ctx.moveTo(x, y - 3);
+                        ctx.lineTo(x, y + 3);
+                        ctx.stroke();
+                    }
+                }
+
+                if (enemy.fireBurnTimer > 0) {
+                    for (let i = 0; i < 7; i++) {
+                        const phase = (gameTime * 2.4 + i * 0.23) % 1;
+                        const side = Math.sin(i * 12.9898) * 0.5 + 0.5;
+                        const x = enemy.x + (side - 0.5) * radius * 1.25 + Math.sin(gameTime * 9 + i) * 2;
+                        const y = enemy.y + radius * 0.48 - phase * radius * 1.4;
+                        const alpha = 1 - phase;
+                        ctx.fillStyle = `rgba(255, ${120 + i * 12}, 28, ${0.72 * alpha})`;
+                        ctx.beginPath();
+                        ctx.arc(x, y, 1.6 + alpha * 1.6, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                if (enemy.bleedingTimer > 0) {
+                    ctx.fillStyle = 'rgba(210, 20, 45, 0.76)';
+                    for (let i = 0; i < 4; i++) {
+                        const phase = (gameTime * 3 + i * 0.31) % 1;
+                        const x = enemy.x + Math.sin(i * 7.41) * radius * 0.42;
+                        const y = enemy.y + radius * (0.15 + phase * 0.55);
+                        ctx.beginPath();
+                        ctx.ellipse(x, y, 1.7, 2.8, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            function drawEnemySpriteImage(sprite, enemy, size, options = {}) {
+                if (!sprite || !sprite.complete || sprite.naturalWidth <= 0) return false;
+
+                const facing = enemy.facing || 1;
+                const alpha = options.alpha ?? 1;
+                const offsetX = options.offsetX || 0;
+                const offsetY = options.offsetY || 0;
+                const rotation = options.rotation || 0;
+                const scaleX = options.scaleX || 1;
+                const scaleY = options.scaleY || 1;
+
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.translate(enemy.x + offsetX, enemy.y + offsetY);
+                ctx.rotate(rotation * facing);
+                ctx.scale(facing * scaleX, scaleY);
+                ctx.imageSmoothingEnabled = false;
+                const renderedSprite = renderEnemySpriteFrame(sprite, enemy, size, options.includeHitFlash !== false);
+                ctx.drawImage(renderedSprite, -size / 2, -size / 2, size, size);
+                ctx.restore();
+
+                drawEnemyStatusParticles(enemy, size * 0.45);
+                return true;
+            }
+
+            function drawGoblinEnemy(enemy, enemyRadius) {
+                const state = enemy.attackAnimTimer > 0
+                    ? 'attack'
+                    : enemy.hurtTimer > 0
+                    ? 'hurt'
+                    : enemy.isMoving
+                        ? 'walk'
+                        : 'idle';
+                const sprite = goblinSprites[state] || goblinSprites.run || goblinSprites.idle;
+                const size = Math.max(48, enemyRadius * 3.35);
+                const bobOffset = state === 'walk' ? Math.sin(gameTime * 8 + enemy.x * 0.04) * 1.2 : 0;
+                return drawEnemySpriteImage(sprite, enemy, size, { offsetY: bobOffset });
+            }
+
+            function drawGoblinKingSprite(sprite, enemy, size, options = {}) {
+                return drawEnemySpriteImage(sprite, enemy, size, options);
+            }
+
+            function getSpriteFrame(frames, index) {
+                if (Array.isArray(frames)) {
+                    if (frames.length === 0) return null;
+                    return frames[index % frames.length];
+                }
+                return frames;
+            }
+
+            function drawGoblinKingEnemy(enemy, enemyRadius) {
+                const isHurt = enemy.hurtTimer > 0;
+                const isAttacking = enemy.attackAnimTimer > 0;
+                const state = isAttacking ? 'attack' : enemy.isMoving ? 'walk' : 'idle';
+                const walkFrame = Math.floor((gameTime * 7 + enemy.x * 0.02) % 2);
+                const attackProgress = isAttacking ? 1 - enemy.attackAnimTimer / 0.22 : 0;
+                const attackFrame = Math.min(2, Math.max(0, Math.floor(attackProgress * 3)));
+                const sprite = isHurt && getSpriteFrame(goblinKingSprites.hurt, 0)
+                    ? getSpriteFrame(goblinKingSprites.hurt, 0)
+                    : state === 'attack'
+                    ? getSpriteFrame(goblinKingSprites.attack, attackFrame)
+                    : state === 'walk'
+                    ? getSpriteFrame(goblinKingSprites.walk, walkFrame)
+                    : goblinKingSprites.idle;
+                const fallbackSprite = sprite || goblinKingSprites.idle || getSpriteFrame(goblinSprites[state], 0) || goblinSprites.idle;
+                const size = Math.max(88, enemyRadius * 3.05);
+                const walkCycle = Math.sin(gameTime * 11 + enemy.x * 0.035);
+                const isWalking = state === 'walk';
+                const hurtShake = isHurt ? Math.sin(gameTime * 90) * 2 : 0;
+
+                return drawGoblinKingSprite(fallbackSprite, enemy, size, {
+                    offsetX: hurtShake,
+                    offsetY: isWalking ? walkCycle * 2.2 : 0,
+                    rotation: isWalking ? walkCycle * 0.075 : 0,
+                    scaleX: isWalking ? 1 - Math.abs(walkCycle) * 0.035 : 1,
+                    scaleY: isWalking ? 1 + Math.abs(walkCycle) * 0.045 : 1,
+                    tint: isHurt ? 'rgba(255, 45, 45, 0.5)' : null
+                });
             }
 
             function triggerMagicShieldBreak() {
@@ -2243,7 +2589,10 @@
                     const dy = player.y - enemy.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     const attackRange = enemy.attackRange || NORMAL_ENEMY_ATTACK_RANGE;
+                    enemy.isMoving = false;
+                    enemy.facing = getEnemyFacingTowardPlayer(enemy, dx);
                     if (dist > attackRange && dist > 0) {
+                        enemy.isMoving = true;
                         const shieldAuraSlow = player.relics.includes('Ice Shield') && dist <= 200 ? getIceShieldSlowMultiplier() : 1;
                         const blizzardSlow = enemy.blizzardSlowTimer > 0 ? 0.7 : 1;
                         const slowMultiplier = (enemy.slowTimer > 0 ? 1 - (enemy.slowAmount || 0.5) : 1) *
@@ -2279,6 +2628,12 @@
                     }
                     if (enemy.attackCooldown > 0) {
                         enemy.attackCooldown -= dt;
+                    }
+                    if (enemy.hurtTimer > 0) {
+                        enemy.hurtTimer -= dt;
+                    }
+                    if (enemy.attackAnimTimer > 0) {
+                        enemy.attackAnimTimer -= dt;
                     }
                     if (enemy.eliteId === 'S2' && enemy.hp <= enemy.maxHp * 0.5) {
                         enemy.fireNodeCooldown -= dt;
@@ -2316,6 +2671,16 @@
                     return b.x >= -50 && b.x <= ARENA_WIDTH + 50 &&
                            b.y >= -50 && b.y <= ARENA_HEIGHT + 50;
                 });
+
+                for (const pickup of pickups) {
+                    if (pickup.type === 'relic') continue;
+                    if (pickup.lifetime == null) {
+                        pickup.lifetime = PICKUP_LIFETIME;
+                        pickup.maxLifetime = PICKUP_LIFETIME;
+                    }
+                    pickup.lifetime -= dt;
+                }
+                pickups = pickups.filter(pickup => pickup.type === 'relic' || pickup.lifetime > 0);
 
                 // Update pickups with Gravity Glove attraction
                 for (const pickup of pickups) {
@@ -2402,6 +2767,11 @@
                 }
                 fireExplosions = fireExplosions.filter(explosion => explosion.lifetime > 0);
 
+                for (const deathEffect of enemyDeathEffects) {
+                    deathEffect.lifetime -= dt;
+                }
+                enemyDeathEffects = enemyDeathEffects.filter(deathEffect => deathEffect.lifetime > 0);
+
                 // Update blizzards
                 for (const blizzard of blizzards) {
                     blizzard.lifetime -= dt;
@@ -2424,6 +2794,7 @@
                             const dy = enemies[i].y - blizzard.y;
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (dist <= blizzard.radius) {
+                                markEnemyHit(enemies[i]);
                                 enemies[i].hp -= 1;
                                 if (enemies[i].hp <= 0) {
                                     killEnemy(enemies[i]);
@@ -2481,6 +2852,7 @@
                         }
                         
                         if (hit) {
+                            markEnemyHit(enemies[j]);
                             enemies[j].hp -= damage;
                             
                             // Black rods pierce through
@@ -2548,6 +2920,8 @@
                             if (enemies[i].attackCooldown > 0) {
                                 continue;
                             }
+                            enemies[i].attackAnimTimer = 0.22;
+                            enemies[i].facing = getEnemyFacingTowardPlayer(enemies[i], player.x - enemies[i].x);
                             let damage = config.enemyDamage + (enemies[i].damageBonus || 0);
                             let shieldBroken = false;
                             
@@ -2901,6 +3275,9 @@
 
                 // Draw pickups
                 for (const pickup of pickups) {
+                    ctx.save();
+                    ctx.globalAlpha = getPickupDrawAlpha(pickup);
+
                     if (pickup.type === 'health') {
                         const heartSprite = pickupSprites.healthHeart;
                         const heartSize = 28;
@@ -2988,6 +3365,8 @@
                             ctx.stroke();
                         }
                     }
+
+                    ctx.restore();
                 }
 
                 // Draw magic shield break effects
@@ -3034,11 +3413,59 @@
                     ctx.restore();
                 }
 
+                // Draw enemy death sprites
+                for (const deathEffect of enemyDeathEffects) {
+                    const progress = 1 - deathEffect.lifetime / deathEffect.maxLifetime;
+                    const opacity = Math.max(0, deathEffect.lifetime / deathEffect.maxLifetime);
+                    const deathSprite = deathEffect.spriteSet === 'goblinKing'
+                        ? goblinKingSprites.death
+                        : goblinSprites.death;
+                    drawSpriteImage(
+                        deathSprite,
+                        deathEffect.x,
+                        deathEffect.y,
+                        deathEffect.size || 54,
+                        deathEffect.facing,
+                        opacity,
+                        progress * 8
+                    );
+                }
+
                 // Draw enemies
                 for (const enemy of enemies) {
                     // Scale enemy size based on wave
                     const waveScale = (1 + (enemy.wave - 1) * 0.15) * (enemy.sizeScale || 1);
                     const enemyRadius = ENEMY_RADIUS * waveScale;
+
+                    if (isLevelOneGoblin(enemy) && drawGoblinEnemy(enemy, enemyRadius)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.2;
+                            const barHeight = 4;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(255, 71, 87, 0.5)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth, barHeight);
+
+                            ctx.fillStyle = '#2ecc71';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (isGoblinKingElite(enemy) && drawGoblinKingEnemy(enemy, enemyRadius)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.4;
+                            const barHeight = 5;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(80, 10, 18, 0.75)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth, barHeight);
+
+                            ctx.fillStyle = '#ffcc33';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
                     
                     // Color intensity increases with wave
                     let colorIntensity = Math.min(1, 0.6 + enemy.wave * 0.04);
@@ -3069,6 +3496,7 @@
                     ctx.arc(enemy.x, enemy.y, enemyRadius, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.stroke();
+                    drawEnemyStatusParticles(enemy, enemyRadius);
 
                     if (enemy.eliteId === 'S1') {
                         ctx.strokeStyle = 'rgba(230, 255, 255, 0.85)';
@@ -3237,38 +3665,41 @@
                         iceSlowTimer: 0,
                         blizzardSlowTimer: 0,
                         slowTimer: 0,
-                        slowAmount: 0.5
+                        slowAmount: 0.5,
+                        hurtTimer: 0,
+                        attackAnimTimer: 0,
+                        facing: 1
                     });
                 }
                 spawnS1Elite();
                 spawnS2Elite();
                 
                 // Add some pickups for preview
-                pickups.push({
+                pickups.push(createPickup({
                     x: 200,
                     y: 400,
                     type: 'health',
-                });
-                pickups.push({
+                }));
+                pickups.push(createPickup({
                     x: 300,
                     y: 500,
                     type: 'exp',
                     value: 1,
                     crystalSize: 'small'
-                });
-                pickups.push({
+                }));
+                pickups.push(createPickup({
                     x: 380,
                     y: 520,
                     type: 'exp',
                     value: 5,
                     crystalSize: 'large'
-                });
-                pickups.push({
+                }));
+                pickups.push(createPickup({
                     x: 500,
                     y: 600,
                     type: 'relic',
                     relicName: 'Vampire Mask'
-                });
+                }));
             }
 
             // Game loop
