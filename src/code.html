@@ -456,8 +456,10 @@
             let iceBladeProjectileSprite = null;
             const iceBladeProjectileAssets = ['ice-blade-projectile'];
             let fireballProjectileSprite = null;
+            let bigFireballProjectileSprite = null;
             let fireExplosionSprite = null;
             const fireballProjectileAssets = ['fireball-projectile'];
+            const bigFireballProjectileAssets = ['big-fireball-projectile', 'fireball-projectile-large'];
             const fireExplosionAssets = ['fire-explosion-effect'];
             const pickupSprites = {
                 expSmall: null,
@@ -633,6 +635,25 @@
                         });
                     }
 
+                    const bigFireballAsset = bigFireballProjectileAssets
+                        .map(id => lib.getAsset(id))
+                        .find(candidate => candidate && candidate.url);
+                    if (bigFireballAsset && bigFireballAsset.url) {
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        await new Promise((resolve) => {
+                            img.onload = () => {
+                                bigFireballProjectileSprite = img;
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                lib.log('Failed to load big fireball projectile sprite');
+                                resolve();
+                            };
+                            img.src = bigFireballAsset.url;
+                        });
+                    }
+
                     const fireExplosionAsset = fireExplosionAssets
                         .map(id => lib.getAsset(id))
                         .find(candidate => candidate && candidate.url);
@@ -770,6 +791,7 @@
                 blackRodTimer: 0,
                 iceStaffTimer: 0,
                 fireStaffTimer: 0,
+                fireArmorHasteTimer: 0,
                 burnTimer: 0,
                 burnTickTimer: 0,
                 magicShield: 0,
@@ -781,7 +803,13 @@
                     redMushroom: false,
                     gravityGlove: false,
                     magicShield: false,
-                    blackRod: false
+                    blackRod: false,
+                    iceBlade: false,
+                    iceStaff: false,
+                    iceShield: false,
+                    fireArmor: false,
+                    fireStaff: false,
+                    fireHeart: false
                 },
                 redMushroomReviveAvailable: false,
                 redMushroomReviveUsed: false
@@ -932,6 +960,7 @@
                     blackRodTimer: 0,
                     iceStaffTimer: 0,
                     fireStaffTimer: 0,
+                    fireArmorHasteTimer: 0,
                     burnTimer: 0,
                     burnTickTimer: 0,
                     magicShield: 0,
@@ -943,7 +972,13 @@
                         redMushroom: false,
                         gravityGlove: false,
                         magicShield: false,
-                        blackRod: false
+                        blackRod: false,
+                        iceBlade: false,
+                        iceStaff: false,
+                        iceShield: false,
+                        fireArmor: false,
+                        fireStaff: false,
+                        fireHeart: false
                     },
                     redMushroomReviveAvailable: false,
                     redMushroomReviveUsed: false
@@ -1011,9 +1046,10 @@
                 relicBar.innerHTML = '';
                 player.relics.forEach(relicName => {
                     const relicEl = document.createElement('div');
+                    const upgraded = isRelicUpgraded(relicName);
                     relicEl.style.cssText = `
-                        width: 40px;
-                        height: 40px;
+                        width: 80px;
+                        height: 80px;
                         border-radius: 4px;
                         display: flex;
                         align-items: center;
@@ -1022,9 +1058,9 @@
                         font-weight: 700;
                         color: #ffffff;
                         text-shadow: 1px 1px 3px rgba(0,0,0,0.7);
-                        border: 2px solid rgba(255,255,255,0.3);
+                        border: ${upgraded ? '3px solid rgba(255, 225, 90, 0.95)' : '2px solid rgba(255,255,255,0.3)'};
                         background: rgba(10, 8, 16, 0.72);
-                        box-shadow: 0 0 12px rgba(255,255,255,0.12);
+                        box-shadow: ${upgraded ? '0 0 18px rgba(255, 220, 80, 0.75), inset 0 0 10px rgba(255, 235, 140, 0.35)' : '0 0 12px rgba(255,255,255,0.12)'};
                         overflow: hidden;
                     `;
                     
@@ -1050,8 +1086,8 @@
                         iconImg.src = relicIcon.src;
                         iconImg.alt = relicName;
                         iconImg.style.cssText = `
-                            width: 32px;
-                            height: 32px;
+                            width: 64px;
+                            height: 64px;
                             object-fit: contain;
                             image-rendering: pixelated;
                             display: block;
@@ -1112,8 +1148,10 @@
                     bleedingTimer: 0,
                     fireBurnTimer: 0,
                     iceSlow: 0,
+                    iceSlowTimer: 0,
                     blizzardSlowTimer: 0,
-                    slowTimer: 0
+                    slowTimer: 0,
+                    slowAmount: 0.5
                 });
 
                 // Limit enemies
@@ -1143,8 +1181,10 @@
                     bleedingTimer: 0,
                     fireBurnTimer: 0,
                     iceSlow: 0,
+                    iceSlowTimer: 0,
                     blizzardSlowTimer: 0,
-                    slowTimer: 0
+                    slowTimer: 0,
+                    slowAmount: 0.5
                 });
                 spawnedElites.add('S1');
             }
@@ -1171,8 +1211,10 @@
                     bleedingTimer: 0,
                     fireBurnTimer: 0,
                     iceSlow: 0,
+                    iceSlowTimer: 0,
                     blizzardSlowTimer: 0,
-                    slowTimer: 0
+                    slowTimer: 0,
+                    slowAmount: 0.5
                 });
                 spawnedElites.add('S2');
             }
@@ -1245,6 +1287,37 @@
                     : { min: 1.0, mid: 2.0, max: 3.0 };
             }
 
+            function getIceBladeMaxSlow() {
+                return player.relicUpgrades.iceBlade ? 1.0 : 0.6;
+            }
+
+            function getIceShieldSlowMultiplier() {
+                return player.relicUpgrades.iceShield ? 0.6 : 0.8;
+            }
+
+            function getFireRateInterval() {
+                return player.fireArmorHasteTimer > 0 ? config.fireRate * 0.5 : config.fireRate;
+            }
+
+            function isRelicUpgraded(relicName) {
+                const upgradeKeys = {
+                    'Vampire Mask': 'vampireMask',
+                    'Hero Sword': 'heroSword',
+                    'Red Mushroom': 'redMushroom',
+                    'Gravity Glove': 'gravityGlove',
+                    'Magic Shield': 'magicShield',
+                    'Black Rod': 'blackRod',
+                    'Ice Blade': 'iceBlade',
+                    'Ice Staff': 'iceStaff',
+                    'Ice Shield': 'iceShield',
+                    'Fire Armor': 'fireArmor',
+                    'Fire Staff': 'fireStaff',
+                    'Fire Heart': 'fireHeart'
+                };
+                const key = upgradeKeys[relicName];
+                return key ? !!player.relicUpgrades[key] : false;
+            }
+
             function dropSpecificRelic(x, y, relicName) {
                 pickups.push({
                     x,
@@ -1269,6 +1342,10 @@
                         break;
                     case 'Ice Staff':
                         player.iceStaffTimer = 0;
+                        break;
+                    case 'Fire Armor':
+                        player.maxHp += 20;
+                        player.hp = Math.min(player.hp + 20, player.maxHp);
                         break;
                     case 'Fire Staff':
                         player.fireStaffTimer = 0;
@@ -1425,6 +1502,66 @@
                         }
                     });
                 }
+                if (player.relics.includes('Ice Blade') && !player.relicUpgrades.iceBlade) {
+                    upgradePool.push({
+                        title: 'Ice Blade+',
+                        relicName: 'Ice Blade',
+                        desc: 'Ice slow stacks to 100%; frozen enemies burst for 1 damage and slow nearby enemies by 40%',
+                        action: () => {
+                            player.relicUpgrades.iceBlade = true;
+                        }
+                    });
+                }
+                if (player.relics.includes('Ice Staff') && !player.relicUpgrades.iceStaff) {
+                    upgradePool.push({
+                        title: 'Ice Staff+',
+                        relicName: 'Ice Staff',
+                        desc: 'Blizzard radius increases to 200',
+                        action: () => {
+                            player.relicUpgrades.iceStaff = true;
+                        }
+                    });
+                }
+                if (player.relics.includes('Ice Shield') && !player.relicUpgrades.iceShield) {
+                    upgradePool.push({
+                        title: 'Ice Shield+',
+                        relicName: 'Ice Shield',
+                        desc: 'Enemies inside the ice aura are slowed by 40%',
+                        action: () => {
+                            player.relicUpgrades.iceShield = true;
+                        }
+                    });
+                }
+                if (player.relics.includes('Fire Armor') && !player.relicUpgrades.fireArmor) {
+                    upgradePool.push({
+                        title: 'Fire Armor+',
+                        relicName: 'Fire Armor',
+                        desc: 'When enemies attack you, shooting speed doubles for 3s',
+                        action: () => {
+                            player.relicUpgrades.fireArmor = true;
+                        }
+                    });
+                }
+                if (player.relics.includes('Fire Staff') && !player.relicUpgrades.fireStaff) {
+                    upgradePool.push({
+                        title: 'Fire Staff+',
+                        relicName: 'Fire Staff',
+                        desc: 'Fire Staff launches a large fireball with radius 200 explosion',
+                        action: () => {
+                            player.relicUpgrades.fireStaff = true;
+                        }
+                    });
+                }
+                if (player.relics.includes('Fire Heart') && !player.relicUpgrades.fireHeart) {
+                    upgradePool.push({
+                        title: 'Fire Heart+',
+                        relicName: 'Fire Heart',
+                        desc: 'Each health heart pickup permanently grants +2 max HP',
+                        action: () => {
+                            player.relicUpgrades.fireHeart = true;
+                        }
+                    });
+                }
 
                 const upgrades = sampleOptions(upgradePool, 3);
 
@@ -1484,7 +1621,7 @@
                 blizzards.push({
                     x,
                     y,
-                    radius: 100,
+                    radius: player.relicUpgrades.iceStaff ? 200 : 100,
                     lifetime: 3,
                     maxLifetime: 3,
                     tickTimer: 0,
@@ -1535,7 +1672,8 @@
                         y: player.y,
                         vx: (dx / dist) * config.bulletSpeed,
                         vy: (dy / dist) * config.bulletSpeed,
-                        type: 'fireball'
+                        type: 'fireball',
+                        big: player.relicUpgrades.fireStaff
                     });
                 }
             }
@@ -1628,9 +1766,53 @@
                     if (dist <= radius) {
                         enemies[i].hp -= 10;
                         enemies[i].slowTimer = Math.max(enemies[i].slowTimer || 0, 3);
+                        enemies[i].slowAmount = 0.5;
                         if (enemies[i].hp <= 0 && !enemies[i].pendingDeath) {
                             enemies[i].pendingDeath = true;
                             killEnemy(enemies[i]);
+                        }
+                    }
+                }
+            }
+
+            function triggerIceBladeBurst(sourceEnemy) {
+                const radius = 100;
+                const shardCount = 14;
+                const shards = [];
+                for (let i = 0; i < shardCount; i++) {
+                    const angle = (Math.PI * 2 * i) / shardCount + (Math.random() - 0.5) * 0.35;
+                    shards.push({
+                        angle,
+                        speed: 130 + Math.random() * 140,
+                        size: 3 + Math.random() * 4,
+                        spin: (Math.random() - 0.5) * 7
+                    });
+                }
+                shieldBreakEffects.push({
+                    x: sourceEnemy.x,
+                    y: sourceEnemy.y,
+                    radius,
+                    lifetime: 0.45,
+                    maxLifetime: 0.45,
+                    shards
+                });
+
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const enemy = enemies[i];
+                    if (enemy === sourceEnemy) continue;
+                    const dx = enemy.x - sourceEnemy.x;
+                    const dy = enemy.y - sourceEnemy.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist <= radius) {
+                        enemy.hp -= 1;
+                        const hadActiveSlow = enemy.slowTimer > 0;
+                        enemy.slowTimer = Math.max(enemy.slowTimer || 0, 2);
+                        enemy.slowAmount = hadActiveSlow
+                            ? Math.max(enemy.slowAmount || 0, 0.4)
+                            : 0.4;
+                        if (enemy.hp <= 0 && !enemy.pendingDeath) {
+                            enemy.pendingDeath = true;
+                            killEnemy(enemy);
                         }
                     }
                 }
@@ -1973,6 +2155,10 @@
                     }
                 }
 
+                if (player.fireArmorHasteTimer > 0) {
+                    player.fireArmorHasteTimer -= dt;
+                }
+
                 // Hero Sword charging
                 if (player.relics.includes('Hero Sword')) {
                     const chargeConfig = getHeroSwordChargeConfig();
@@ -2043,7 +2229,7 @@
 
                 // Auto-fire
                 player.fireTimer += dt;
-                if (player.fireTimer >= config.fireRate && enemies.length > 0) {
+                if (player.fireTimer >= getFireRateInterval() && enemies.length > 0) {
                     player.fireTimer = 0;
                     const target = findNearestEnemy();
                     if (target) {
@@ -2058,9 +2244,9 @@
                     const dist = Math.sqrt(dx * dx + dy * dy);
                     const attackRange = enemy.attackRange || NORMAL_ENEMY_ATTACK_RANGE;
                     if (dist > attackRange && dist > 0) {
-                        const shieldAuraSlow = player.relics.includes('Ice Shield') && dist <= 200 ? 0.8 : 1;
+                        const shieldAuraSlow = player.relics.includes('Ice Shield') && dist <= 200 ? getIceShieldSlowMultiplier() : 1;
                         const blizzardSlow = enemy.blizzardSlowTimer > 0 ? 0.7 : 1;
-                        const slowMultiplier = (enemy.slowTimer > 0 ? 0.5 : 1) *
+                        const slowMultiplier = (enemy.slowTimer > 0 ? 1 - (enemy.slowAmount || 0.5) : 1) *
                             (1 - (enemy.iceSlow || 0)) *
                             blizzardSlow *
                             shieldAuraSlow;
@@ -2080,6 +2266,13 @@
                     }
                     if (enemy.slowTimer > 0) {
                         enemy.slowTimer -= dt;
+                    }
+                    if (enemy.iceSlowTimer > 0) {
+                        enemy.iceSlowTimer -= dt;
+                        if (enemy.iceSlowTimer <= 0) {
+                            enemy.iceSlow = 0;
+                            enemy.iceSlowTimer = 0;
+                        }
                     }
                     if (enemy.blizzardSlowTimer > 0) {
                         enemy.blizzardSlowTimer -= dt;
@@ -2263,18 +2456,23 @@
                                 damage = bullets[i].damage;
                             }
                         } else if (circleCollision(
-                            bullets[i].x, bullets[i].y, BULLET_RADIUS,
+                            bullets[i].x, bullets[i].y, bullets[i].big ? BULLET_RADIUS * 1.8 : BULLET_RADIUS,
                             enemies[j].x, enemies[j].y, ENEMY_RADIUS * (enemies[j].sizeScale || 1)
                         )) {
                             hit = true;
                             if (bullets[i].type === 'fireball') {
-                                createFireExplosion(bullets[i].x, bullets[i].y, 30, 2);
+                                createFireExplosion(bullets[i].x, bullets[i].y, bullets[i].big ? 200 : 100, 2);
                                 bulletsToRemove.add(i);
                                 continue;
                             } else if (bullets[i].type === 'normal') {
                                 damage = bullets[i].isCritical ? player.criticalDamage : 1;
                                 if (player.relics.includes('Ice Blade')) {
-                                    enemies[j].iceSlow = Math.min(0.6, (enemies[j].iceSlow || 0) + 0.2);
+                                    const previousIceSlow = enemies[j].iceSlow || 0;
+                                    enemies[j].iceSlow = Math.min(getIceBladeMaxSlow(), previousIceSlow + 0.2);
+                                    enemies[j].iceSlowTimer = 2;
+                                    if (player.relicUpgrades.iceBlade && previousIceSlow < 1 && enemies[j].iceSlow >= 1) {
+                                        triggerIceBladeBurst(enemies[j]);
+                                    }
                                 }
                             } else if (bullets[i].type === 'blackRod') {
                                 damage = 1;
@@ -2304,11 +2502,17 @@
                 // Pickup collection
                 const pickupsToRemove = new Set();
                 for (let i = 0; i < pickups.length; i++) {
+                    const pickupCollectionRadius = pickups[i].type === 'relic'
+                        ? PICKUP_RADIUS * 2
+                        : PICKUP_RADIUS;
                     if (circleCollision(
                         player.x, player.y, PLAYER_RADIUS,
-                        pickups[i].x, pickups[i].y, PICKUP_RADIUS
+                        pickups[i].x, pickups[i].y, pickupCollectionRadius
                     )) {
                         if (pickups[i].type === 'health') {
+                            if (player.relicUpgrades.fireHeart) {
+                                player.maxHp += 2;
+                            }
                             const healAmount = Math.max(1, Math.ceil(player.maxHp * 0.1));
                             const actualHeal = Math.min(healAmount, player.maxHp - player.hp);
                             player.hp = Math.min(player.hp + healAmount, player.maxHp);
@@ -2362,6 +2566,9 @@
                             player.lastDamageTime = gameTime;
                             if (player.relics.includes('Fire Armor')) {
                                 enemies[i].fireBurnTimer = Math.max(enemies[i].fireBurnTimer || 0, 3);
+                                if (player.relicUpgrades.fireArmor) {
+                                    player.fireArmorHasteTimer = 3;
+                                }
                             }
                             if (enemies[i].eliteId === 'S2') {
                                 player.burnTimer = 3;
@@ -2394,8 +2601,8 @@
                 const chargeRatio = Math.max(0, Math.min(1, (chargeTime - chargeConfig.min) / (chargeConfig.max - chargeConfig.min)));
                 const firstHalf = chargeRatio <= 0.5;
                 const localRatio = firstHalf ? chargeRatio / 0.5 : (chargeRatio - 0.5) / 0.5;
-                const damage = firstHalf ? lerp(3, 6, localRatio) : lerp(6, 9, localRatio);
-                const radius = firstHalf ? lerp(67, 100, localRatio) : lerp(100, 167, localRatio);
+                const damage = firstHalf ? lerp(1, 2, localRatio) : lerp(2, 4, localRatio);
+                const radius = firstHalf ? lerp(120, 180, localRatio) : lerp(180, 240, localRatio);
                 const tier = chargeRatio < 0.33 ? 'small' : (chargeRatio < 0.67 ? 'medium' : 'large');
 
                 return {
@@ -2419,8 +2626,8 @@
                     radius: slashStats.radius,
                     damage: Math.ceil(slashStats.damage),
                     tier: slashStats.tier,
-                    lifetime: 0.6,
-                    maxLifetime: 0.6,
+                    lifetime: 0.2,
+                    maxLifetime: 0.2,
                     swingAngle: Math.random() * Math.PI * 2,
                     swingSpeed: 20
                 });
@@ -2512,107 +2719,125 @@
                         ctx.fillStyle = COLORS.bullet;
                     } else if (bullet.type === 'fireball') {
                         const angle = Math.atan2(bullet.vy, bullet.vx);
-                        if (fireballProjectileSprite && fireballProjectileSprite.complete && fireballProjectileSprite.naturalWidth > 0) {
+                        const fireballSprite = bullet.big && bigFireballProjectileSprite
+                            ? bigFireballProjectileSprite
+                            : fireballProjectileSprite;
+                        const fireballWidth = bullet.big ? 70 : 36;
+                        const fireballHeight = bullet.big ? 24 : 12;
+                        if (fireballSprite && fireballSprite.complete && fireballSprite.naturalWidth > 0) {
                             ctx.save();
                             ctx.translate(bullet.x, bullet.y);
                             ctx.rotate(angle);
                             ctx.imageSmoothingEnabled = false;
-                            ctx.drawImage(fireballProjectileSprite, -18, -6, 36, 12);
+                            ctx.drawImage(fireballSprite, -fireballWidth / 2, -fireballHeight / 2, fireballWidth, fireballHeight);
                             ctx.restore();
                         } else {
                             ctx.fillStyle = '#ff6a1f';
                             ctx.beginPath();
-                            ctx.arc(bullet.x, bullet.y, 8, 0, Math.PI * 2);
+                            ctx.arc(bullet.x, bullet.y, bullet.big ? 14 : 8, 0, Math.PI * 2);
                             ctx.fill();
                             ctx.fillStyle = COLORS.bullet;
                         }
                     } else if (bullet.type === 'heroSlash') {
-                        // Draw a rotating Hero Sword sweep around the player.
+                        // Draw a DNF-style outer blade flash: a bright arc sweeps
+                        // along a flattened halo with a fading trail.
                         const progress = 1 - (bullet.lifetime / bullet.maxLifetime);
-                        const opacity = Math.max(0, 1 - progress * progress); // Ease out
-                        const rotation = bullet.swingAngle + progress * Math.PI * 2;
-                        const slashSprite = heroSwordSlashSprites[bullet.tier];
-                        const slashSize = PLAYER_RADIUS * 2 + bullet.radius * 2.1;
+                        const opacity = Math.max(0, 1 - progress * progress);
+                        const drawRadius = bullet.radius * (0.72 + progress * 0.18);
+                        const squash = 0.28;
+                        const sweepStart = -Math.PI * 0.35 + progress * Math.PI * 1.65;
+                        const sweepLength = Math.PI * 0.68;
+                        const sweepEnd = sweepStart + sweepLength;
 
                         ctx.save();
                         ctx.globalAlpha = opacity;
                         ctx.translate(bullet.x, bullet.y);
-                        ctx.rotate(rotation);
-                        if (slashSprite && slashSprite.complete && slashSprite.naturalWidth > 0) {
-                            ctx.imageSmoothingEnabled = false;
-                            ctx.drawImage(
-                                slashSprite,
-                                -slashSize / 2,
-                                -slashSize / 2,
-                                slashSize,
-                                slashSize
-                            );
-                        } else {
-                            // Fallback if the uploaded slash images are not available.
-                            ctx.strokeStyle = `rgba(255, 220, 90, ${opacity})`;
-                            ctx.lineWidth = 7;
-                            ctx.beginPath();
-                            ctx.arc(0, 0, bullet.radius, -0.28, 0.9);
-                            ctx.stroke();
-                            ctx.strokeStyle = `rgba(255, 255, 210, ${opacity * 0.9})`;
-                            ctx.lineWidth = 3;
-                            ctx.beginPath();
-                            ctx.arc(0, 0, bullet.radius * 0.85, -0.18, 0.78);
-                            ctx.stroke();
-                            ctx.fillStyle = `rgba(255, 230, 120, ${opacity * 0.9})`;
-                            ctx.fillRect(bullet.radius * 0.25, -3, bullet.radius * 0.75, 6);
-                        }
-                        ctx.restore();
+                        ctx.rotate(bullet.swingAngle);
+                        ctx.scale(1, squash);
 
-                        // Center flash keeps the hit readable even during fast rotation.
-                        ctx.fillStyle = `rgba(255, 230, 150, ${opacity * 0.4})`;
+                        for (let i = 0; i < 4; i++) {
+                            const trailEnd = sweepEnd - i * Math.PI * 0.16;
+                            const trailStart = trailEnd - sweepLength * (0.78 - i * 0.12);
+                            const trailOpacity = opacity * (1 - i * 0.22);
+                            ctx.strokeStyle = `rgba(255, 170, 42, ${0.18 * trailOpacity})`;
+                            ctx.lineWidth = 18 - i * 3;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, drawRadius - i * 2, trailStart, trailEnd);
+                            ctx.stroke();
+
+                            ctx.strokeStyle = `rgba(255, 222, 80, ${0.46 * trailOpacity})`;
+                            ctx.lineWidth = 8 - i * 1.4;
+                            ctx.beginPath();
+                            ctx.arc(0, 0, drawRadius - i * 2, trailStart + 0.03, trailEnd - 0.02);
+                            ctx.stroke();
+                        }
+
+                        ctx.strokeStyle = `rgba(255, 250, 205, ${opacity})`;
+                        ctx.lineWidth = 3;
                         ctx.beginPath();
-                        ctx.arc(bullet.x, bullet.y, bullet.radius * 0.3, 0, Math.PI * 2);
+                        ctx.arc(0, 0, drawRadius * 0.99, sweepEnd - sweepLength * 0.42, sweepEnd);
+                        ctx.stroke();
+
+                        const tipX = Math.cos(sweepEnd) * drawRadius;
+                        const tipY = Math.sin(sweepEnd) * drawRadius;
+                        ctx.fillStyle = `rgba(255, 245, 180, ${opacity})`;
+                        ctx.beginPath();
+                        ctx.arc(tipX, tipY, 5, 0, Math.PI * 2);
                         ctx.fill();
+                        ctx.restore();
                     }
                 }
 
                 // Draw frost relic area effects
                 if (player.relics.includes('Ice Shield')) {
                     const shieldRadius = 200;
-                    ctx.save();
-                    ctx.translate(player.x, player.y);
-                    ctx.globalAlpha = 0.1;
-                    ctx.strokeStyle = '#d8fbff';
-                    ctx.lineWidth = 4;
-                    ctx.lineCap = 'round';
-                    ctx.lineJoin = 'round';
-                    for (let i = 0; i < 6; i++) {
-                        const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+                    const iceShieldCycle = gameTime % 6;
+                    const iceShieldAlpha = iceShieldCycle < 1
+                        ? iceShieldCycle * 0.1
+                        : iceShieldCycle < 2
+                            ? (2 - iceShieldCycle) * 0.1
+                            : 0;
+
+                    if (iceShieldAlpha > 0) {
                         ctx.save();
-                        ctx.rotate(angle);
+                        ctx.translate(player.x, player.y);
+                        ctx.globalAlpha = iceShieldAlpha;
+                        ctx.strokeStyle = '#d8fbff';
+                        ctx.lineWidth = 4;
+                        ctx.lineCap = 'round';
+                        ctx.lineJoin = 'round';
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+                            ctx.save();
+                            ctx.rotate(angle);
+                            ctx.beginPath();
+                            ctx.moveTo(0, 0);
+                            ctx.lineTo(0, -shieldRadius * 0.86);
+                            ctx.moveTo(0, -shieldRadius * 0.34);
+                            ctx.lineTo(-shieldRadius * 0.1, -shieldRadius * 0.47);
+                            ctx.moveTo(0, -shieldRadius * 0.34);
+                            ctx.lineTo(shieldRadius * 0.1, -shieldRadius * 0.47);
+                            ctx.moveTo(0, -shieldRadius * 0.58);
+                            ctx.lineTo(-shieldRadius * 0.14, -shieldRadius * 0.72);
+                            ctx.moveTo(0, -shieldRadius * 0.58);
+                            ctx.lineTo(shieldRadius * 0.14, -shieldRadius * 0.72);
+                            ctx.stroke();
+                            ctx.restore();
+                        }
+
+                        ctx.lineWidth = 3;
                         ctx.beginPath();
-                        ctx.moveTo(0, 0);
-                        ctx.lineTo(0, -shieldRadius * 0.86);
-                        ctx.moveTo(0, -shieldRadius * 0.34);
-                        ctx.lineTo(-shieldRadius * 0.1, -shieldRadius * 0.47);
-                        ctx.moveTo(0, -shieldRadius * 0.34);
-                        ctx.lineTo(shieldRadius * 0.1, -shieldRadius * 0.47);
-                        ctx.moveTo(0, -shieldRadius * 0.58);
-                        ctx.lineTo(-shieldRadius * 0.14, -shieldRadius * 0.72);
-                        ctx.moveTo(0, -shieldRadius * 0.58);
-                        ctx.lineTo(shieldRadius * 0.14, -shieldRadius * 0.72);
+                        for (let i = 0; i < 6; i++) {
+                            const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
+                            const x = Math.cos(angle) * shieldRadius * 0.36;
+                            const y = Math.sin(angle) * shieldRadius * 0.36;
+                            if (i === 0) ctx.moveTo(x, y);
+                            else ctx.lineTo(x, y);
+                        }
+                        ctx.closePath();
                         ctx.stroke();
                         ctx.restore();
                     }
-
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    for (let i = 0; i < 6; i++) {
-                        const angle = (Math.PI * 2 * i) / 6 - Math.PI / 2;
-                        const x = Math.cos(angle) * shieldRadius * 0.36;
-                        const y = Math.sin(angle) * shieldRadius * 0.36;
-                        if (i === 0) ctx.moveTo(x, y);
-                        else ctx.lineTo(x, y);
-                    }
-                    ctx.closePath();
-                    ctx.stroke();
-                    ctx.restore();
                 }
 
                 for (const blizzard of blizzards) {
@@ -2717,7 +2942,7 @@
                             ctx.fill();
                         }
                     } else if (pickup.type === 'relic') {
-                        const iconSize = 32;
+                        const iconSize = 64;
                         const relicIcon = relicIconCache[pickup.relicName];
                         
                         if (relicIcon && relicIcon.complete && relicIcon.naturalWidth > 0) {
@@ -2734,7 +2959,7 @@
                             
                             // Draw glow effect around icon
                             ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-                            ctx.lineWidth = 2;
+                            ctx.lineWidth = 3;
                             ctx.beginPath();
                             ctx.arc(pickup.x, pickup.y, iconSize / 2 + 2, 0, Math.PI * 2);
                             ctx.stroke();
@@ -2756,10 +2981,10 @@
                             };
                             ctx.fillStyle = relicColors[pickup.relicName] || '#666666';
                             ctx.beginPath();
-                            ctx.arc(pickup.x, pickup.y, 10, 0, Math.PI * 2);
+                            ctx.arc(pickup.x, pickup.y, 20, 0, Math.PI * 2);
                             ctx.fill();
                             ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                            ctx.lineWidth = 2;
+                            ctx.lineWidth = 3;
                             ctx.stroke();
                         }
                     }
@@ -3009,8 +3234,10 @@
                         bleedingTimer: 0,
                         fireBurnTimer: 0,
                         iceSlow: 0,
+                        iceSlowTimer: 0,
                         blizzardSlowTimer: 0,
-                        slowTimer: 0
+                        slowTimer: 0,
+                        slowAmount: 0.5
                     });
                 }
                 spawnS1Elite();
