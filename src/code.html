@@ -353,16 +353,49 @@
             </div>
             <div id="relic-bar" style="
                 position: absolute;
-                bottom: 80px;
-                left: 50%;
-                transform: translateX(-50%);
+                top: 50%;
+                left: 12px;
+                transform: translateY(-50%);
                 display: flex;
+                flex-direction: column;
                 gap: 8px;
-                flex-wrap: wrap;
-                justify-content: center;
-                max-width: 600px;
+                align-items: center;
+                max-height: 70%;
+                overflow: hidden;
                 pointer-events: none;
             "></div>
+            <div id="run-progress" style="
+                position: absolute;
+                top: 50%;
+                right: 12px;
+                transform: translateY(-50%);
+                width: 34px;
+                height: 70%;
+                min-height: 420px;
+                max-height: 760px;
+                border: 2px solid rgba(255,255,255,0.28);
+                border-radius: 6px;
+                background: rgba(8, 7, 14, 0.62);
+                box-shadow: 0 0 14px rgba(0,0,0,0.45), inset 0 0 10px rgba(255,255,255,0.08);
+                overflow: hidden;
+                pointer-events: none;
+            ">
+                <div id="run-progress-fill" style="
+                    position: absolute;
+                    left: 0;
+                    bottom: 0;
+                    width: 100%;
+                    height: 0%;
+                    background: linear-gradient(180deg, #ffd700 0%, #00d9ff 55%, #2ecc71 100%);
+                    box-shadow: 0 0 14px rgba(0,217,255,0.65);
+                "></div>
+                <div id="run-progress-segments" style="
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    flex-direction: column-reverse;
+                "></div>
+            </div>
         </div>
     </div>
 
@@ -461,6 +494,16 @@
             const fireballProjectileAssets = ['fireball-projectile'];
             const bigFireballProjectileAssets = ['big-fireball-projectile', 'fireball-projectile-large'];
             const fireExplosionAssets = ['fire-explosion-effect'];
+            const terrainSprites = {
+                center: null,
+                border: null,
+                detail: null
+            };
+            const terrainSpriteAssets = {
+                center: ['terrain-center-tile', 'terrain-center-tile.png'],
+                border: ['terrain-side-border', 'terrain-side-border.png'],
+                detail: ['terrain-side-detail', 'terrain-side-detail.png']
+            };
             const goblinSprites = {
                 idle: null,
                 walk: null,
@@ -476,6 +519,34 @@
                 attack: ['goblin-attack'],
                 hurt: ['goblin-hurt'],
                 death: ['goblin-death']
+            };
+            const zombieSprites = {
+                idle: null,
+                walk: null,
+                attack: null,
+                hurt: null,
+                death: null
+            };
+            const zombieSpriteAssets = {
+                idle: ['zombie-idle', 'zombie-idle.png'],
+                walk: ['zombie-walk', 'zombie-walk.png'],
+                attack: ['zombie-attack', 'zombie-attack.png'],
+                hurt: ['zombie-hurt', 'zombie-hurt.png'],
+                death: ['zombie-death', 'zombie-death.png']
+            };
+            const zombieKingSprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const zombieKingSpriteAssets = {
+                idle: ['zombie-king-idle', 'zombie-king-idle.png'],
+                walk: ['zombie-king-walk', 'zombie-king-walk.png', 'zombie-king-walk-2', 'zombie-king-walk-2.png'],
+                attack: ['zombie-king-attack-1', 'zombie-king-attack-1.png', 'zombie-king-attack', 'zombie-king-attack.png', 'zombie-king-attack-2', 'zombie-king-attack-2.png'],
+                hurt: ['zombie-king-hurt-2', 'zombie-king-hurt-2.png'],
+                death: ['zombie-king-death', 'zombie-king-death.png']
             };
             const goblinKingSprites = {
                 idle: null,
@@ -703,6 +774,27 @@
                         });
                     }
 
+                    await Promise.all(Object.entries(terrainSpriteAssets).map(([key, assetIds]) => {
+                        const asset = assetIds
+                            .map(id => lib.getAsset(id))
+                            .find(candidate => candidate && candidate.url);
+                        if (!asset || !asset.url) return Promise.resolve();
+
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        return new Promise((resolve) => {
+                            img.onload = () => {
+                                terrainSprites[key] = img;
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                lib.log(`Failed to load terrain ${key} sprite`);
+                                resolve();
+                            };
+                            img.src = asset.url;
+                        });
+                    }));
+
                     await Promise.all(Object.keys(goblinSprites).map(async (state) => {
                         const asset = goblinSpriteAssets[state]
                             .map(id => lib.getAsset(id))
@@ -721,6 +813,52 @@
                                 resolve();
                             };
                             img.src = asset.url;
+                        });
+                    }));
+
+                    await Promise.all(Object.keys(zombieSprites).map(async (state) => {
+                        const asset = zombieSpriteAssets[state]
+                            .map(id => lib.getAsset(id))
+                            .find(candidate => candidate && candidate.url);
+                        if (!asset || !asset.url) return;
+
+                        const img = new Image();
+                        img.crossOrigin = 'anonymous';
+                        await new Promise((resolve) => {
+                            img.onload = () => {
+                                zombieSprites[state] = img;
+                                resolve();
+                            };
+                            img.onerror = () => {
+                                lib.log(`Failed to load zombie ${state} sprite`);
+                                resolve();
+                            };
+                            img.src = asset.url;
+                        });
+                    }));
+
+                    await Promise.all(Object.entries(zombieKingSpriteAssets).flatMap(([state, assetIds]) => {
+                        return assetIds.map((assetId) => {
+                            const asset = lib.getAsset(assetId);
+                            if (!asset || !asset.url) return Promise.resolve();
+
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            return new Promise((resolve) => {
+                                img.onload = () => {
+                                    if (Array.isArray(zombieKingSprites[state])) {
+                                        zombieKingSprites[state].push(img);
+                                    } else {
+                                        zombieKingSprites[state] = img;
+                                    }
+                                    resolve();
+                                };
+                                img.onerror = () => {
+                                    lib.log(`Failed to load zombie king ${assetId} sprite`);
+                                    resolve();
+                                };
+                                img.src = asset.url;
+                            });
                         });
                     }));
 
@@ -810,6 +948,32 @@
             `;
             gameWorld.querySelector('.ui-overlay').appendChild(waveEl);
 
+            const runProgressFillEl = document.getElementById('run-progress-fill');
+            const runProgressSegmentsEl = document.getElementById('run-progress-segments');
+            for (let i = 0; i < 10; i++) {
+                const segment = document.createElement('div');
+                segment.style.cssText = `
+                    flex: 1;
+                    border-top: ${i === 0 ? '0' : '1px solid rgba(255,255,255,0.28)'};
+                    position: relative;
+                `;
+                const label = document.createElement('div');
+                label.textContent = `${i + 1}`;
+                label.style.cssText = `
+                    position: absolute;
+                    right: 5px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    color: rgba(255,255,255,0.58);
+                    font-family: 'Orbitron', sans-serif;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-shadow: 0 1px 3px rgba(0,0,0,0.75);
+                `;
+                segment.appendChild(label);
+                runProgressSegmentsEl.appendChild(segment);
+            }
+
             // Constants
             const ARENA_WIDTH = 720;
             const ARENA_HEIGHT = 1280;
@@ -824,6 +988,10 @@
             const PICKUP_RADIUS = 12;
             const PICKUP_LIFETIME = 15;
             const PICKUP_BLINK_START = 10;
+            const TOP_SPAWN_Y = -ENEMY_RADIUS - 28;
+            const ENEMY_CHASE_RADIUS = 320;
+            const ENEMY_ADVANCE_STEER = 0.34;
+            const PLAYER_START_Y_RATIO = 0.78;
             const PICKUP_ATTRACTION_RADIUS = 150;
             const ENHANCED_PICKUP_ATTRACTION_RADIUS = 300;
             const RELIC_NAMES = ['Vampire Mask', 'Hero Sword', 'Red Mushroom', 'Gravity Glove', 'Magic Shield', 'Black Rod'];
@@ -851,7 +1019,7 @@
             let droppedRelics = new Set(); // Track which relics have dropped
             let player = {
                 x: ARENA_WIDTH / 2,
-                y: ARENA_HEIGHT / 2,
+                y: ARENA_HEIGHT * PLAYER_START_Y_RATIO,
                 vx: 0,
                 vy: 0,
                 hp: config.playerMaxHP,
@@ -1022,7 +1190,7 @@
                 droppedRelics = new Set();
                 player = {
                     x: ARENA_WIDTH / 2,
-                    y: ARENA_HEIGHT / 2,
+                    y: ARENA_HEIGHT * PLAYER_START_Y_RATIO,
                     vx: 0,
                     vy: 0,
                     hp: config.playerMaxHP,
@@ -1088,6 +1256,17 @@
 
             // Get wave-scaled enemy stats
             function getEnemyStats(wave) {
+                const levelOneHp = 3;
+                const levelOneSpeed = config.enemySpeed * 1.08;
+                if (wave === 2) {
+                    return {
+                        hp: levelOneHp * 2,
+                        speed: levelOneSpeed * 0.8,
+                        expReward: 1 + wave,
+                        spawnInterval: Math.max(0.3, 1.0 - wave * 0.06)
+                    };
+                }
+
                 return {
                     hp: 2 + wave * 1,
                     speed: config.enemySpeed * (1 + wave * 0.08),
@@ -1120,6 +1299,20 @@
                 // Update wave
                 const wave = getCurrentWave();
                 waveEl.textContent = `WAVE ${wave}`;
+
+                const runProgress = Math.max(0, Math.min(1, gameTime / GAME_DURATION));
+                runProgressFillEl.style.height = `${runProgress * 100}%`;
+                Array.from(runProgressSegmentsEl.children).forEach((segment, index) => {
+                    const minuteStart = index / 10;
+                    const minuteEnd = (index + 1) / 10;
+                    const isActive = runProgress >= minuteStart && runProgress < minuteEnd;
+                    const isComplete = runProgress >= minuteEnd;
+                    segment.style.background = isActive
+                        ? 'rgba(255, 215, 0, 0.18)'
+                        : isComplete
+                        ? 'rgba(0, 217, 255, 0.08)'
+                        : 'transparent';
+                });
                 
                 // Update relic bar
                 const relicBar = document.getElementById('relic-bar');
@@ -1128,8 +1321,8 @@
                     const relicEl = document.createElement('div');
                     const upgraded = isRelicUpgraded(relicName);
                     relicEl.style.cssText = `
-                        width: 80px;
-                        height: 80px;
+                        width: 64px;
+                        height: 64px;
                         border-radius: 4px;
                         display: flex;
                         align-items: center;
@@ -1166,8 +1359,8 @@
                         iconImg.src = relicIcon.src;
                         iconImg.alt = relicName;
                         iconImg.style.cssText = `
-                            width: 64px;
-                            height: 64px;
+                            width: 52px;
+                            height: 52px;
                             object-fit: contain;
                             image-rendering: pixelated;
                             display: block;
@@ -1182,34 +1375,16 @@
                 });
             }
 
-            // Spawn enemy from random edge
+            // Spawn enemies from the top edge for upward-scrolling play.
             function getRandomSpawnPoint(extraOffset = 0) {
-                const edge = Math.floor(Math.random() * 4);
-                let x, y;
-
-                switch (edge) {
-                    case 0: // Top
-                        x = Math.random() * ARENA_WIDTH;
-                        y = -ENEMY_RADIUS - 20 - extraOffset;
-                        break;
-                    case 1: // Bottom
-                        x = Math.random() * ARENA_WIDTH;
-                        y = ARENA_HEIGHT + ENEMY_RADIUS + 20 + extraOffset;
-                        break;
-                    case 2: // Left
-                        x = -ENEMY_RADIUS - 20 - extraOffset;
-                        y = Math.random() * ARENA_HEIGHT;
-                        break;
-                    case 3: // Right
-                        x = ARENA_WIDTH + ENEMY_RADIUS + 20 + extraOffset;
-                        y = Math.random() * ARENA_HEIGHT;
-                        break;
-                }
+                const edgePadding = 36;
+                const x = edgePadding + Math.random() * (ARENA_WIDTH - edgePadding * 2);
+                const y = TOP_SPAWN_Y - extraOffset - Math.random() * 40;
 
                 return { x, y };
             }
 
-            // Spawn enemy from random edge
+            // Spawn enemy from the advancing top lane.
             function spawnEnemy() {
                 const wave = getCurrentWave();
                 const stats = getEnemyStats(wave);
@@ -1224,6 +1399,7 @@
                     expReward: stats.expReward,
                     wave: wave,
                     attackRange: NORMAL_ENEMY_ATTACK_RANGE,
+                    damageBonus: wave === 2 ? config.enemyDamage : 0,
                     attackCooldown: 0,
                     bleedingTimer: 0,
                     fireBurnTimer: 0,
@@ -1413,8 +1589,16 @@
                 return enemy && enemy.wave === 1 && !enemy.eliteId;
             }
 
+            function isLevelTwoZombie(enemy) {
+                return enemy && enemy.wave === 2 && !enemy.eliteId;
+            }
+
             function isGoblinKingElite(enemy) {
                 return enemy && enemy.eliteId === 'S1';
+            }
+
+            function isZombieKingElite(enemy) {
+                return enemy && enemy.eliteId === 'S2';
             }
 
             function getEnemyFacingTowardPlayer(enemy, dxToPlayer) {
@@ -1425,19 +1609,19 @@
             }
 
             function markEnemyHit(enemy) {
-                if (isLevelOneGoblin(enemy) || isGoblinKingElite(enemy)) {
+                if (isLevelOneGoblin(enemy) || isLevelTwoZombie(enemy) || isGoblinKingElite(enemy) || isZombieKingElite(enemy)) {
                     enemy.hurtTimer = 0.18;
                 }
             }
 
             function addEnemyDeathEffect(enemy) {
-                if (!isLevelOneGoblin(enemy) && !isGoblinKingElite(enemy)) return;
+                if (!isLevelOneGoblin(enemy) && !isLevelTwoZombie(enemy) && !isGoblinKingElite(enemy) && !isZombieKingElite(enemy)) return;
 
                 enemyDeathEffects.push({
                     x: enemy.x,
                     y: enemy.y,
-                    spriteSet: isGoblinKingElite(enemy) ? 'goblinKing' : 'goblin',
-                    size: isGoblinKingElite(enemy) ? 92 : 54,
+                    spriteSet: isGoblinKingElite(enemy) ? 'goblinKing' : isZombieKingElite(enemy) ? 'zombieKing' : isLevelTwoZombie(enemy) ? 'zombie' : 'goblin',
+                    size: isGoblinKingElite(enemy) || isZombieKingElite(enemy) ? 92 : 54,
                     facing: enemy.facing || 1,
                     lifetime: 0.45,
                     maxLifetime: 0.45
@@ -2041,6 +2225,25 @@
                 return drawEnemySpriteImage(sprite, enemy, size, { offsetY: bobOffset });
             }
 
+            function drawZombieEnemy(enemy, enemyRadius) {
+                const state = enemy.attackAnimTimer > 0
+                    ? 'attack'
+                    : enemy.hurtTimer > 0
+                    ? 'hurt'
+                    : enemy.isMoving
+                        ? 'walk'
+                        : 'idle';
+                const sprite = zombieSprites[state] || zombieSprites.idle;
+                const size = Math.max(50, enemyRadius * 3.45);
+                const walkCycle = Math.sin(gameTime * 5 + enemy.x * 0.03);
+                const bobOffset = state === 'walk' ? walkCycle * 0.8 : 0;
+                const rotation = state === 'walk' ? walkCycle * 0.035 : 0;
+                return drawEnemySpriteImage(sprite, enemy, size, {
+                    offsetY: bobOffset,
+                    rotation
+                });
+            }
+
             function drawGoblinKingSprite(sprite, enemy, size, options = {}) {
                 return drawEnemySpriteImage(sprite, enemy, size, options);
             }
@@ -2080,6 +2283,35 @@
                     scaleX: isWalking ? 1 - Math.abs(walkCycle) * 0.035 : 1,
                     scaleY: isWalking ? 1 + Math.abs(walkCycle) * 0.045 : 1,
                     tint: isHurt ? 'rgba(255, 45, 45, 0.5)' : null
+                });
+            }
+
+            function drawZombieKingEnemy(enemy, enemyRadius) {
+                const isHurt = enemy.hurtTimer > 0;
+                const isAttacking = enemy.attackAnimTimer > 0;
+                const state = isAttacking ? 'attack' : enemy.isMoving ? 'walk' : 'idle';
+                const walkFrame = Math.floor((gameTime * 5 + enemy.x * 0.018) % 2);
+                const attackProgress = isAttacking ? 1 - enemy.attackAnimTimer / 0.22 : 0;
+                const attackFrame = Math.min(2, Math.max(0, Math.floor(attackProgress * 3)));
+                const sprite = isHurt && getSpriteFrame(zombieKingSprites.hurt, 0)
+                    ? getSpriteFrame(zombieKingSprites.hurt, 0)
+                    : state === 'attack'
+                    ? getSpriteFrame(zombieKingSprites.attack, attackFrame)
+                    : state === 'walk'
+                    ? getSpriteFrame(zombieKingSprites.walk, walkFrame)
+                    : zombieKingSprites.idle;
+                const fallbackSprite = sprite || zombieKingSprites.idle || zombieSprites.idle;
+                const size = Math.max(92, enemyRadius * 3.05);
+                const walkCycle = Math.sin(gameTime * 7 + enemy.x * 0.03);
+                const isWalking = state === 'walk';
+                const hurtShake = isHurt ? Math.sin(gameTime * 90) * 2 : 0;
+
+                return drawEnemySpriteImage(fallbackSprite, enemy, size, {
+                    offsetX: hurtShake,
+                    offsetY: isWalking ? walkCycle * 1.6 : 0,
+                    rotation: isWalking ? walkCycle * 0.045 : 0,
+                    scaleX: isWalking ? 1 - Math.abs(walkCycle) * 0.025 : 1,
+                    scaleY: isWalking ? 1 + Math.abs(walkCycle) * 0.03 : 1
                 });
             }
 
@@ -2593,14 +2825,22 @@
                     enemy.facing = getEnemyFacingTowardPlayer(enemy, dx);
                     if (dist > attackRange && dist > 0) {
                         enemy.isMoving = true;
+                        const shouldChasePlayer = dist <= ENEMY_CHASE_RADIUS || enemy.y >= player.y - ENEMY_CHASE_RADIUS * 0.35;
                         const shieldAuraSlow = player.relics.includes('Ice Shield') && dist <= 200 ? getIceShieldSlowMultiplier() : 1;
                         const blizzardSlow = enemy.blizzardSlowTimer > 0 ? 0.7 : 1;
                         const slowMultiplier = (enemy.slowTimer > 0 ? 1 - (enemy.slowAmount || 0.5) : 1) *
                             (1 - (enemy.iceSlow || 0)) *
                             blizzardSlow *
                             shieldAuraSlow;
-                        enemy.x += (dx / dist) * enemy.speed * slowMultiplier * dt;
-                        enemy.y += (dy / dist) * enemy.speed * slowMultiplier * dt;
+                        if (shouldChasePlayer) {
+                            enemy.x += (dx / dist) * enemy.speed * slowMultiplier * dt;
+                            enemy.y += (dy / dist) * enemy.speed * slowMultiplier * dt;
+                        } else {
+                            const steerX = Math.max(-1, Math.min(1, dx / ENEMY_CHASE_RADIUS)) * ENEMY_ADVANCE_STEER;
+                            const advanceMag = Math.sqrt(steerX * steerX + 1);
+                            enemy.x += (steerX / advanceMag) * enemy.speed * slowMultiplier * dt;
+                            enemy.y += (1 / advanceMag) * enemy.speed * slowMultiplier * dt;
+                        }
                     }
                     
                     // Update bleeding
@@ -3010,6 +3250,94 @@
                 player.heroSwordChargeTime = 0;
             }
 
+            function drawScrollingArenaBackground() {
+                const terrainSpeed = 72;
+                const tileSize = 512;
+                const borderWidth = 160;
+                const scroll = (gameTime * terrainSpeed) % 96;
+                const tileScroll = (gameTime * terrainSpeed) % tileSize;
+
+                ctx.fillStyle = '#141529';
+                ctx.fillRect(0, 0, ARENA_WIDTH, ARENA_HEIGHT);
+
+                const centerTile = terrainSprites.center;
+                if (centerTile && centerTile.complete && centerTile.naturalWidth > 0) {
+                    ctx.save();
+                    ctx.imageSmoothingEnabled = false;
+                    for (let y = -tileSize + tileScroll; y < ARENA_HEIGHT + tileSize; y += tileSize) {
+                        for (let x = -tileSize; x < ARENA_WIDTH + tileSize; x += tileSize) {
+                            ctx.drawImage(centerTile, x, y, tileSize, tileSize);
+                        }
+                    }
+                    ctx.restore();
+                }
+
+                ctx.save();
+                if (!centerTile || !centerTile.complete || centerTile.naturalWidth <= 0) {
+                    ctx.globalAlpha = 0.42;
+                    ctx.strokeStyle = 'rgba(90, 105, 140, 0.22)';
+                    ctx.lineWidth = 1;
+                    for (let y = -96 + scroll; y < ARENA_HEIGHT + 96; y += 96) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, y);
+                        ctx.lineTo(ARENA_WIDTH, y);
+                        ctx.stroke();
+                    }
+
+                    ctx.globalAlpha = 0.28;
+                    ctx.strokeStyle = 'rgba(50, 190, 220, 0.18)';
+                    for (let y = -48 + scroll; y < ARENA_HEIGHT + 96; y += 192) {
+                        ctx.beginPath();
+                        ctx.moveTo(40, y);
+                        ctx.lineTo(ARENA_WIDTH - 40, y + 36);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = 'rgba(120, 230, 255, 0.18)';
+                for (let i = 0; i < 34; i++) {
+                    const x = (i * 137) % ARENA_WIDTH;
+                    const y = (i * 211 + scroll * (0.7 + (i % 3) * 0.25)) % ARENA_HEIGHT;
+                    ctx.fillRect(x, y, 2, 2);
+                }
+                ctx.restore();
+
+                const sideBorder = terrainSprites.border;
+                if (sideBorder && sideBorder.complete && sideBorder.naturalWidth > 0) {
+                    const borderScroll = (gameTime * terrainSpeed) % tileSize;
+                    ctx.save();
+                    ctx.imageSmoothingEnabled = false;
+                    for (let y = -tileSize + borderScroll; y < ARENA_HEIGHT + tileSize; y += tileSize) {
+                        ctx.drawImage(sideBorder, 0, y, borderWidth, tileSize);
+                        ctx.save();
+                        ctx.translate(ARENA_WIDTH, y);
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(sideBorder, 0, 0, borderWidth, tileSize);
+                        ctx.restore();
+                    }
+                    ctx.restore();
+                }
+
+                const sideDetail = terrainSprites.detail;
+                if (sideDetail && sideDetail.complete && sideDetail.naturalWidth > 0) {
+                    const detailScroll = gameTime * terrainSpeed * 0.9;
+                    ctx.save();
+                    ctx.imageSmoothingEnabled = false;
+                    for (let i = 0; i < 9; i++) {
+                        const y = ((i * 173 + detailScroll) % (ARENA_HEIGHT + 256)) - 128;
+                        const leftX = 18 + (i % 3) * 18;
+                        ctx.drawImage(sideDetail, leftX, y, 64, 64);
+                        ctx.save();
+                        ctx.translate(ARENA_WIDTH - leftX, y);
+                        ctx.scale(-1, 1);
+                        ctx.drawImage(sideDetail, 0, 0, 64, 64);
+                        ctx.restore();
+                    }
+                    ctx.restore();
+                }
+            }
+
             // Render game
             function render() {
                 const scale = getScale();
@@ -3023,6 +3351,8 @@
                 ctx.save();
                 ctx.translate(offset.x, offset.y);
                 ctx.scale(scale, scale);
+
+                drawScrollingArenaBackground();
 
                 // Draw arena border
                 ctx.strokeStyle = COLORS.border;
@@ -3419,6 +3749,10 @@
                     const opacity = Math.max(0, deathEffect.lifetime / deathEffect.maxLifetime);
                     const deathSprite = deathEffect.spriteSet === 'goblinKing'
                         ? goblinKingSprites.death
+                        : deathEffect.spriteSet === 'zombieKing'
+                        ? zombieKingSprites.death
+                        : deathEffect.spriteSet === 'zombie'
+                        ? zombieSprites.death
                         : goblinSprites.death;
                     drawSpriteImage(
                         deathSprite,
@@ -3448,6 +3782,36 @@
 
                             ctx.fillStyle = '#2ecc71';
                             ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (isLevelTwoZombie(enemy) && drawZombieEnemy(enemy, enemyRadius)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.2;
+                            const barHeight = 4;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(255, 71, 87, 0.5)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth, barHeight);
+
+                            ctx.fillStyle = '#2ecc71';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (isZombieKingElite(enemy) && drawZombieKingEnemy(enemy, enemyRadius)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.4;
+                            const barHeight = 5;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(80, 10, 18, 0.75)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth, barHeight);
+
+                            ctx.fillStyle = '#ff7a2a';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth * hpPercent, barHeight);
                         }
                         continue;
                     }
