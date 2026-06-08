@@ -534,6 +534,20 @@
                 hurt: ['zombie-hurt', 'zombie-hurt.png'],
                 death: ['zombie-death', 'zombie-death.png']
             };
+            const levelThreeSprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const levelThreeSpriteAssets = {
+                idle: ['level-3-idle', 'level-3-idle.png'],
+                walk: ['level-3-walk', 'level-3-walk.png', 'level-3-walk-2', 'level-3-walk-2.png'],
+                attack: ['level-3-attack-1', 'level-3-attack-1.png', 'level-3-attack', 'level-3-attack.png', 'level-3-attack-2', 'level-3-attack-2.png'],
+                hurt: ['level-3-hurt-2', 'level-3-hurt-2.png'],
+                death: ['level-3-death', 'level-3-death.png']
+            };
             const zombieKingSprites = {
                 idle: null,
                 walk: [],
@@ -834,6 +848,31 @@
                                 resolve();
                             };
                             img.src = asset.url;
+                        });
+                    }));
+
+                    await Promise.all(Object.entries(levelThreeSpriteAssets).flatMap(([state, assetIds]) => {
+                        return assetIds.map((assetId) => {
+                            const asset = lib.getAsset(assetId);
+                            if (!asset || !asset.url) return Promise.resolve();
+
+                            const img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            return new Promise((resolve) => {
+                                img.onload = () => {
+                                    if (Array.isArray(levelThreeSprites[state])) {
+                                        levelThreeSprites[state].push(img);
+                                    } else {
+                                        levelThreeSprites[state] = img;
+                                    }
+                                    resolve();
+                                };
+                                img.onerror = () => {
+                                    lib.log(`Failed to load level 3 ${assetId} sprite`);
+                                    resolve();
+                                };
+                                img.src = asset.url;
+                            });
                         });
                     }));
 
@@ -1593,6 +1632,10 @@
                 return enemy && enemy.wave === 2 && !enemy.eliteId;
             }
 
+            function isLevelThreeSkeleton(enemy) {
+                return enemy && enemy.wave === 3 && !enemy.eliteId;
+            }
+
             function isGoblinKingElite(enemy) {
                 return enemy && enemy.eliteId === 'S1';
             }
@@ -1609,19 +1652,19 @@
             }
 
             function markEnemyHit(enemy) {
-                if (isLevelOneGoblin(enemy) || isLevelTwoZombie(enemy) || isGoblinKingElite(enemy) || isZombieKingElite(enemy)) {
+                if (isLevelOneGoblin(enemy) || isLevelTwoZombie(enemy) || isLevelThreeSkeleton(enemy) || isGoblinKingElite(enemy) || isZombieKingElite(enemy)) {
                     enemy.hurtTimer = 0.18;
                 }
             }
 
             function addEnemyDeathEffect(enemy) {
-                if (!isLevelOneGoblin(enemy) && !isLevelTwoZombie(enemy) && !isGoblinKingElite(enemy) && !isZombieKingElite(enemy)) return;
+                if (!isLevelOneGoblin(enemy) && !isLevelTwoZombie(enemy) && !isLevelThreeSkeleton(enemy) && !isGoblinKingElite(enemy) && !isZombieKingElite(enemy)) return;
 
                 enemyDeathEffects.push({
                     x: enemy.x,
                     y: enemy.y,
-                    spriteSet: isGoblinKingElite(enemy) ? 'goblinKing' : isZombieKingElite(enemy) ? 'zombieKing' : isLevelTwoZombie(enemy) ? 'zombie' : 'goblin',
-                    size: isGoblinKingElite(enemy) || isZombieKingElite(enemy) ? 92 : 54,
+                    spriteSet: isGoblinKingElite(enemy) ? 'goblinKing' : isZombieKingElite(enemy) ? 'zombieKing' : isLevelThreeSkeleton(enemy) ? 'levelThree' : isLevelTwoZombie(enemy) ? 'zombie' : 'goblin',
+                    size: isGoblinKingElite(enemy) || isZombieKingElite(enemy) ? 92 : isLevelThreeSkeleton(enemy) ? 70 : 54,
                     facing: enemy.facing || 1,
                     lifetime: 0.45,
                     maxLifetime: 0.45
@@ -2241,6 +2284,35 @@
                 return drawEnemySpriteImage(sprite, enemy, size, {
                     offsetY: bobOffset,
                     rotation
+                });
+            }
+
+            function drawLevelThreeEnemy(enemy, enemyRadius) {
+                const isHurt = enemy.hurtTimer > 0;
+                const isAttacking = enemy.attackAnimTimer > 0;
+                const state = isAttacking ? 'attack' : enemy.isMoving ? 'walk' : 'idle';
+                const walkFrame = Math.floor((gameTime * 5.4 + enemy.x * 0.015) % 2);
+                const attackProgress = isAttacking ? 1 - enemy.attackAnimTimer / 0.22 : 0;
+                const attackFrame = Math.min(2, Math.max(0, Math.floor(attackProgress * 3)));
+                const sprite = isHurt && getSpriteFrame(levelThreeSprites.hurt, 0)
+                    ? getSpriteFrame(levelThreeSprites.hurt, 0)
+                    : state === 'attack'
+                    ? getSpriteFrame(levelThreeSprites.attack, attackFrame)
+                    : state === 'walk'
+                    ? getSpriteFrame(levelThreeSprites.walk, walkFrame)
+                    : levelThreeSprites.idle;
+                const fallbackSprite = sprite || levelThreeSprites.idle || zombieSprites.idle;
+                const size = Math.max(70, enemyRadius * 3.35);
+                const walkCycle = Math.sin(gameTime * 6 + enemy.x * 0.025);
+                const isWalking = state === 'walk';
+                const hurtShake = isHurt ? Math.sin(gameTime * 90) * 2 : 0;
+
+                return drawEnemySpriteImage(fallbackSprite, enemy, size, {
+                    offsetX: hurtShake,
+                    offsetY: isWalking ? walkCycle * 1.0 : 0,
+                    rotation: isWalking ? walkCycle * 0.025 : 0,
+                    scaleX: isWalking ? 1 - Math.abs(walkCycle) * 0.012 : 1,
+                    scaleY: isWalking ? 1 + Math.abs(walkCycle) * 0.018 : 1
                 });
             }
 
@@ -3751,6 +3823,8 @@
                         ? goblinKingSprites.death
                         : deathEffect.spriteSet === 'zombieKing'
                         ? zombieKingSprites.death
+                        : deathEffect.spriteSet === 'levelThree'
+                        ? levelThreeSprites.death
                         : deathEffect.spriteSet === 'zombie'
                         ? zombieSprites.death
                         : goblinSprites.death;
@@ -3787,6 +3861,21 @@
                     }
 
                     if (isLevelTwoZombie(enemy) && drawZombieEnemy(enemy, enemyRadius)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.2;
+                            const barHeight = 4;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(255, 71, 87, 0.5)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth, barHeight);
+
+                            ctx.fillStyle = '#2ecc71';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (isLevelThreeSkeleton(enemy) && drawLevelThreeEnemy(enemy, enemyRadius)) {
                         if (enemy.hp < enemy.maxHp) {
                             const barWidth = enemyRadius * 2.2;
                             const barHeight = 4;
