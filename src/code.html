@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Vortex Survivor</title>
+    <title>Dungeon Survivor</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -401,7 +401,7 @@
 
     <script>
         /*
-         * VORTEX SURVIVOR
+         * DUNGEON SURVIVOR
          * A minimalist survival game where you control a circle, 
          * dodging enemies while auto-firing at the nearest threat.
          * Survive as long as possible and rack up kills!
@@ -548,6 +548,34 @@
                 hurt: ['level-3-hurt-2', 'level-3-hurt-2.png'],
                 death: ['level-3-death', 'level-3-death.png']
             };
+            const levelFourSprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const levelFourSpriteAssets = {
+                idle: ['level-4-idle', 'level-4-idle.png', 'level-4-walk-2', 'level-4-walk-2.png'],
+                walk: ['level-4-walk', 'level-4-walk.png', 'level-4-walk-2', 'level-4-walk-2.png'],
+                attack: ['level-4-attack', 'level-4-attack.png'],
+                hurt: ['level-4-hurt', 'level-4-hurt.png'],
+                death: ['level-4-death', 'level-4-death.png']
+            };
+            const levelFiveSprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const levelFiveSpriteAssets = {
+                idle: ['level-5-idle', 'level-5-idle.png'],
+                walk: ['level-5-walk', 'level-5-walk.png'],
+                attack: ['level-5-attack', 'level-5-attack.png'],
+                hurt: ['level-5-hurt', 'level-5-hurt.png'],
+                death: ['level-5-death', 'level-5-death.png']
+            };
             const zombieKingSprites = {
                 idle: null,
                 walk: [],
@@ -576,6 +604,48 @@
                 hurt: ['goblin-king-hurt-2'],
                 death: ['goblin-king-death']
             };
+            const s3Sprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const s3SpriteAssets = {
+                idle: ['s3-idle', 's3-idle.png'],
+                walk: ['s3-walk', 's3-walk.png', 's3-idle', 's3-idle.png'],
+                attack: ['s3-attack', 's3-attack.png'],
+                hurt: ['s3-hurt', 's3-hurt.png'],
+                death: ['s3-death', 's3-death.png']
+            };
+            const s4Sprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const s4SpriteAssets = {
+                idle: ['s4-idle', 's4-idle.png'],
+                walk: ['s4-walk', 's4-walk.png', 's4-idle', 's4-idle.png'],
+                attack: ['s4-attack', 's4-attack.png'],
+                hurt: ['s4-hurt', 's4-hurt.png'],
+                death: ['s4-death', 's4-death.png']
+            };
+            const s5Sprites = {
+                idle: null,
+                walk: [],
+                attack: [],
+                hurt: [],
+                death: null
+            };
+            const s5SpriteAssets = {
+                idle: ['s5-idle', 's5-idle.png'],
+                walk: ['s5-walk', 's5-walk.png', 's5-idle', 's5-idle.png'],
+                attack: ['s5-attack', 's5-attack.png'],
+                hurt: ['s5-hurt', 's5-hurt.png'],
+                death: ['s5-death', 's5-death.png']
+            };
             const pickupSprites = {
                 expSmall: null,
                 expLarge: null,
@@ -590,6 +660,33 @@
             // Preload player sprite and relic icons
             async function preloadPlayerSprites() {
                 try {
+                    const loadSpriteSet = async (spriteStore, spriteAssets, label) => {
+                        await Promise.all(Object.entries(spriteAssets).flatMap(([state, assetIds]) => {
+                            return assetIds.map((assetId) => {
+                                const asset = lib.getAsset(assetId);
+                                if (!asset || !asset.url) return Promise.resolve();
+
+                                const img = new Image();
+                                img.crossOrigin = 'anonymous';
+                                return new Promise((resolve) => {
+                                    img.onload = () => {
+                                        if (Array.isArray(spriteStore[state])) {
+                                            spriteStore[state].push(img);
+                                        } else {
+                                            spriteStore[state] = img;
+                                        }
+                                        resolve();
+                                    };
+                                    img.onerror = () => {
+                                        lib.log(`Failed to load ${label} ${assetId} sprite`);
+                                        resolve();
+                                    };
+                                    img.src = asset.url;
+                                });
+                            });
+                        }));
+                    };
+
                     // Load stable high-resolution player sprite first. This is the main
                     // player visual; movement feedback is applied in code.
                     const baseAsset = lib.getAsset('hero-128') || lib.getAsset('hero-single-32');
@@ -875,6 +972,8 @@
                             });
                         });
                     }));
+                    await loadSpriteSet(levelFourSprites, levelFourSpriteAssets, 'level 4');
+                    await loadSpriteSet(levelFiveSprites, levelFiveSpriteAssets, 'level 5');
 
                     await Promise.all(Object.entries(zombieKingSpriteAssets).flatMap(([state, assetIds]) => {
                         return assetIds.map((assetId) => {
@@ -925,6 +1024,9 @@
                             });
                         });
                     }));
+                    await loadSpriteSet(s3Sprites, s3SpriteAssets, 'S3');
+                    await loadSpriteSet(s4Sprites, s4SpriteAssets, 'S4');
+                    await loadSpriteSet(s5Sprites, s5SpriteAssets, 'S5');
 
                     await Promise.all(Object.entries(pickupSpriteAssets).map(([key, assetIds]) => {
                         const asset = assetIds.map(id => lib.getAsset(id)).find(candidate => candidate && candidate.url);
@@ -989,7 +1091,8 @@
 
             const runProgressFillEl = document.getElementById('run-progress-fill');
             const runProgressSegmentsEl = document.getElementById('run-progress-segments');
-            for (let i = 0; i < 10; i++) {
+            const RUN_DURATION_MINUTES = 5;
+            for (let i = 0; i < RUN_DURATION_MINUTES; i++) {
                 const segment = document.createElement('div');
                 segment.style.cssText = `
                     flex: 1;
@@ -1053,9 +1156,10 @@
             // Runtime state (not persisted)
             let gameState = 'playing'; // 'playing', 'gameover', or 'levelup'
             let gameTime = 0; // Elapsed time in seconds
-            const GAME_DURATION = 600; // 10 minutes in seconds
+            const GAME_DURATION = RUN_DURATION_MINUTES * 60;
             let totalExpGained = 0; // Track total EXP for result screen
             let droppedRelics = new Set(); // Track which relics have dropped
+            let reservedEliteRelics = {}; // Per-run relics reserved for S3/S4 drops
             let player = {
                 x: ARENA_WIDTH / 2,
                 y: ARENA_HEIGHT * PLAYER_START_Y_RATIO,
@@ -1109,6 +1213,8 @@
             let fireExplosions = [];
             let enemyDeathEffects = [];
             let spawnedElites = new Set();
+            let finalBossPhase = false;
+            let finalBossDefeated = false;
             let kills = 0;
             let spawnTimer = 0;
 
@@ -1227,6 +1333,7 @@
                 gameTime = 0;
                 totalExpGained = 0;
                 droppedRelics = new Set();
+                reservedEliteRelics = assignReservedEliteRelics();
                 player = {
                     x: ARENA_WIDTH / 2,
                     y: ARENA_HEIGHT * PLAYER_START_Y_RATIO,
@@ -1279,6 +1386,8 @@
                 fireExplosions = [];
                 enemyDeathEffects = [];
                 spawnedElites = new Set();
+                finalBossPhase = false;
+                finalBossDefeated = false;
                 kills = 0;
                 spawnTimer = 0;
                 updateUI();
@@ -1290,7 +1399,7 @@
             function getCurrentWave() {
                 const remainingTime = GAME_DURATION - gameTime;
                 const minutesRemaining = Math.ceil(remainingTime / 60);
-                return Math.max(1, 11 - minutesRemaining); // Wave 1-10
+                return Math.max(1, RUN_DURATION_MINUTES + 1 - minutesRemaining); // Wave 1-5
             }
 
             // Get wave-scaled enemy stats
@@ -1306,11 +1415,23 @@
                     };
                 }
 
+                let speed = config.enemySpeed * (1 + wave * 0.08);
+                let spawnInterval = Math.max(0.3, 1.0 - wave * 0.06);
+                if (wave >= 3) {
+                    speed *= 1.2;
+                }
+                if (wave >= 4) {
+                    speed *= 1.2;
+                }
+                if (wave >= 5) {
+                    spawnInterval /= 1.5;
+                }
+
                 return {
                     hp: 2 + wave * 1,
-                    speed: config.enemySpeed * (1 + wave * 0.08),
+                    speed,
                     expReward: 1 + wave,
-                    spawnInterval: Math.max(0.3, 1.0 - wave * 0.06)
+                    spawnInterval: Math.max(0.2, spawnInterval)
                 };
             }
 
@@ -1342,8 +1463,8 @@
                 const runProgress = Math.max(0, Math.min(1, gameTime / GAME_DURATION));
                 runProgressFillEl.style.height = `${runProgress * 100}%`;
                 Array.from(runProgressSegmentsEl.children).forEach((segment, index) => {
-                    const minuteStart = index / 10;
-                    const minuteEnd = (index + 1) / 10;
+                    const minuteStart = index / RUN_DURATION_MINUTES;
+                    const minuteEnd = (index + 1) / RUN_DURATION_MINUTES;
                     const isActive = runProgress >= minuteStart && runProgress < minuteEnd;
                     const isComplete = runProgress >= minuteEnd;
                     segment.style.background = isActive
@@ -1465,8 +1586,8 @@
                 enemies.push({
                     x,
                     y,
-                    hp: stats.hp * 20,
-                    maxHp: stats.hp * 20,
+                    hp: stats.hp * 200,
+                    maxHp: stats.hp * 200,
                     speed: stats.speed * 0.82,
                     expReward: stats.expReward,
                     wave: eliteWave,
@@ -1497,8 +1618,8 @@
                 enemies.push({
                     x,
                     y,
-                    hp: stats.hp * 10,
-                    maxHp: stats.hp * 10,
+                    hp: stats.hp * 100,
+                    maxHp: stats.hp * 100,
                     speed: stats.speed * 0.82,
                     expReward: stats.expReward,
                     wave: eliteWave,
@@ -1521,6 +1642,102 @@
                     facing: 1
                 });
                 spawnedElites.add('S2');
+            }
+
+            function spawnS3Elite() {
+                const eliteWave = 3;
+                const stats = getEnemyStats(eliteWave);
+                const { x, y } = getRandomSpawnPoint(30);
+                enemies.push({
+                    x,
+                    y,
+                    hp: stats.hp * 120,
+                    maxHp: stats.hp * 120,
+                    speed: stats.speed * 0.78,
+                    expReward: stats.expReward,
+                    wave: eliteWave,
+                    eliteId: 'S3',
+                    eliteName: 'Bone Warden',
+                    sizeScale: 2,
+                    attackRange: 96,
+                    damageBonus: 12,
+                    attackCooldown: 0,
+                    bleedingTimer: 0,
+                    fireBurnTimer: 0,
+                    iceSlow: 0,
+                    iceSlowTimer: 0,
+                    blizzardSlowTimer: 0,
+                    slowTimer: 0,
+                    slowAmount: 0.5,
+                    hurtTimer: 0,
+                    attackAnimTimer: 0,
+                    facing: 1
+                });
+                spawnedElites.add('S3');
+            }
+
+            function spawnS4Elite() {
+                const eliteWave = 4;
+                const stats = getEnemyStats(eliteWave);
+                const { x, y } = getRandomSpawnPoint(30);
+                enemies.push({
+                    x,
+                    y,
+                    hp: stats.hp * 120,
+                    maxHp: stats.hp * 120,
+                    speed: stats.speed * 0.82,
+                    expReward: stats.expReward,
+                    wave: eliteWave,
+                    eliteId: 'S4',
+                    eliteName: 'Shadow Wraith',
+                    sizeScale: 2,
+                    attackRange: 104,
+                    damageBonus: 14,
+                    attackCooldown: 0,
+                    bleedingTimer: 0,
+                    fireBurnTimer: 0,
+                    iceSlow: 0,
+                    iceSlowTimer: 0,
+                    blizzardSlowTimer: 0,
+                    slowTimer: 0,
+                    slowAmount: 0.5,
+                    hurtTimer: 0,
+                    attackAnimTimer: 0,
+                    facing: 1
+                });
+                spawnedElites.add('S4');
+            }
+
+            function spawnS5Elite() {
+                const eliteWave = 5;
+                const stats = getEnemyStats(eliteWave);
+                const { x, y } = getRandomSpawnPoint(30);
+                enemies.push({
+                    x,
+                    y,
+                    hp: stats.hp * 140,
+                    maxHp: stats.hp * 140,
+                    speed: stats.speed * 0.72,
+                    expReward: stats.expReward,
+                    wave: eliteWave,
+                    eliteId: 'S5',
+                    eliteName: 'Beholder',
+                    sizeScale: 2,
+                    attackRange: 112,
+                    damageBonus: 16,
+                    attackCooldown: 0,
+                    bleedingTimer: 0,
+                    fireBurnTimer: 0,
+                    iceSlow: 0,
+                    iceSlowTimer: 0,
+                    blizzardSlowTimer: 0,
+                    slowTimer: 0,
+                    slowAmount: 0.5,
+                    hurtTimer: 0,
+                    attackAnimTimer: 0,
+                    facing: 1
+                });
+                spawnedElites.add('S5');
             }
 
             // Drop pickup from enemy
@@ -1546,9 +1763,10 @@
                     }));
                 }
                 
-                // 50% chance for relic (only if not already dropped)
-                if (Math.random() < 0.5) {
-                    const availableRelics = RELIC_NAMES.filter(r => !droppedRelics.has(r));
+                // 10% chance for relic (only if not already dropped)
+                if (Math.random() < 0.1) {
+                    const reservedRelics = new Set(Object.values(reservedEliteRelics));
+                    const availableRelics = RELIC_NAMES.filter(r => !droppedRelics.has(r) && !reservedRelics.has(r));
                     if (availableRelics.length > 0) {
                         const relic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
                         droppedRelics.add(relic);
@@ -1579,6 +1797,14 @@
                     result.push(pool.splice(index, 1)[0]);
                 }
                 return result;
+            }
+
+            function assignReservedEliteRelics() {
+                const [s3Relic, s4Relic] = sampleOptions(RELIC_NAMES, 2);
+                return {
+                    S3: s3Relic,
+                    S4: s4Relic
+                };
             }
 
             function createPickup(data) {
@@ -1636,12 +1862,24 @@
                 return enemy && enemy.wave === 3 && !enemy.eliteId;
             }
 
+            function isLevelFourEnemy(enemy) {
+                return enemy && enemy.wave === 4 && !enemy.eliteId;
+            }
+
+            function isLevelFiveEnemy(enemy) {
+                return enemy && enemy.wave === 5 && !enemy.eliteId;
+            }
+
             function isGoblinKingElite(enemy) {
                 return enemy && enemy.eliteId === 'S1';
             }
 
             function isZombieKingElite(enemy) {
                 return enemy && enemy.eliteId === 'S2';
+            }
+
+            function isSpecialElite(enemy) {
+                return enemy && ['S3', 'S4', 'S5'].includes(enemy.eliteId);
             }
 
             function getEnemyFacingTowardPlayer(enemy, dxToPlayer) {
@@ -1652,19 +1890,19 @@
             }
 
             function markEnemyHit(enemy) {
-                if (isLevelOneGoblin(enemy) || isLevelTwoZombie(enemy) || isLevelThreeSkeleton(enemy) || isGoblinKingElite(enemy) || isZombieKingElite(enemy)) {
+                if (isLevelOneGoblin(enemy) || isLevelTwoZombie(enemy) || isLevelThreeSkeleton(enemy) || isLevelFourEnemy(enemy) || isLevelFiveEnemy(enemy) || isGoblinKingElite(enemy) || isZombieKingElite(enemy) || isSpecialElite(enemy)) {
                     enemy.hurtTimer = 0.18;
                 }
             }
 
             function addEnemyDeathEffect(enemy) {
-                if (!isLevelOneGoblin(enemy) && !isLevelTwoZombie(enemy) && !isLevelThreeSkeleton(enemy) && !isGoblinKingElite(enemy) && !isZombieKingElite(enemy)) return;
+                if (!isLevelOneGoblin(enemy) && !isLevelTwoZombie(enemy) && !isLevelThreeSkeleton(enemy) && !isLevelFourEnemy(enemy) && !isLevelFiveEnemy(enemy) && !isGoblinKingElite(enemy) && !isZombieKingElite(enemy) && !isSpecialElite(enemy)) return;
 
                 enemyDeathEffects.push({
                     x: enemy.x,
                     y: enemy.y,
-                    spriteSet: isGoblinKingElite(enemy) ? 'goblinKing' : isZombieKingElite(enemy) ? 'zombieKing' : isLevelThreeSkeleton(enemy) ? 'levelThree' : isLevelTwoZombie(enemy) ? 'zombie' : 'goblin',
-                    size: isGoblinKingElite(enemy) || isZombieKingElite(enemy) ? 92 : isLevelThreeSkeleton(enemy) ? 70 : 54,
+                    spriteSet: isGoblinKingElite(enemy) ? 'goblinKing' : isZombieKingElite(enemy) ? 'zombieKing' : isSpecialElite(enemy) ? enemy.eliteId : isLevelFiveEnemy(enemy) ? 'levelFive' : isLevelFourEnemy(enemy) ? 'levelFour' : isLevelThreeSkeleton(enemy) ? 'levelThree' : isLevelTwoZombie(enemy) ? 'zombie' : 'goblin',
+                    size: isGoblinKingElite(enemy) || isZombieKingElite(enemy) || isSpecialElite(enemy) ? 92 : isLevelFiveEnemy(enemy) ? 76 : isLevelFourEnemy(enemy) || isLevelThreeSkeleton(enemy) ? 70 : 54,
                     facing: enemy.facing || 1,
                     lifetime: 0.45,
                     maxLifetime: 0.45
@@ -1743,6 +1981,9 @@
                 kills++;
                 const isS1Elite = enemy.eliteId === 'S1';
                 const isS2Elite = enemy.eliteId === 'S2';
+                const isS3Elite = enemy.eliteId === 'S3';
+                const isS4Elite = enemy.eliteId === 'S4';
+                const isS5Elite = enemy.eliteId === 'S5';
                 addEnemyDeathEffect(enemy);
                 
                 // Vampire Mask: recover HP on kill
@@ -1773,8 +2014,21 @@
                 } else if (isS2Elite) {
                     const relicName = S2_RELIC_NAMES[Math.floor(Math.random() * S2_RELIC_NAMES.length)];
                     dropSpecificRelic(enemy.x, enemy.y, relicName);
+                } else if (isS3Elite || isS4Elite) {
+                    const relicName = reservedEliteRelics[enemy.eliteId];
+                    if (relicName) {
+                        droppedRelics.add(relicName);
+                        dropSpecificRelic(enemy.x, enemy.y, relicName);
+                    }
                 } else {
                     dropPickup(enemy.x, enemy.y, enemy.maxHp, enemy.wave);
+                }
+
+                if (isS5Elite) {
+                    finalBossDefeated = true;
+                    if (finalBossPhase) {
+                        triggerGameOver(true);
+                    }
                 }
             }
 
@@ -2181,22 +2435,68 @@
                 ctx.lineCap = 'round';
 
                 if (hasIceStatus(enemy)) {
-                    ctx.fillStyle = 'rgba(205, 245, 255, 0.75)';
-                    ctx.strokeStyle = 'rgba(120, 220, 255, 0.55)';
-                    for (let i = 0; i < 6; i++) {
-                        const angle = gameTime * 0.8 + i * Math.PI * 0.67;
-                        const distance = radius * (0.62 + 0.16 * Math.sin(gameTime * 2 + i));
-                        const x = enemy.x + Math.cos(angle) * distance;
-                        const y = enemy.y + Math.sin(angle) * distance;
+                    const iceIntensity = Math.max(
+                        enemy.iceSlow || 0,
+                        enemy.blizzardSlowTimer > 0 ? 0.45 : 0,
+                        enemy.slowTimer > 0 ? 0.35 : 0
+                    );
+                    const auraX = enemy.x;
+                    const auraY = enemy.y + radius * 0.72;
+                    const auraRadiusX = radius * 0.78;
+                    const auraRadiusY = radius * 0.16;
+                    const frostPulse = 0.75 + Math.sin(gameTime * 5) * 0.12;
+
+                    ctx.fillStyle = `rgba(115, 225, 255, ${0.11 * frostPulse})`;
+                    ctx.beginPath();
+                    ctx.ellipse(auraX, auraY, auraRadiusX, auraRadiusY, 0, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = `rgba(190, 245, 255, ${0.45 * frostPulse})`;
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    ctx.ellipse(auraX, auraY, auraRadiusX, auraRadiusY, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = `rgba(225, 255, 255, ${0.52 * frostPulse})`;
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < 7; i++) {
+                        const angle = (Math.PI * 2 * i) / 7 + gameTime * 0.12;
+                        const x = auraX + Math.cos(angle) * auraRadiusX * 0.86;
+                        const y = auraY + Math.sin(angle) * auraRadiusY * 0.72;
+                        const spikeLength = 2.5 + 1.5 * Math.sin(gameTime * 4 + i);
                         ctx.beginPath();
-                        ctx.arc(x, y, 1.4, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.moveTo(x - 3, y);
-                        ctx.lineTo(x + 3, y);
-                        ctx.moveTo(x, y - 3);
-                        ctx.lineTo(x, y + 3);
+                        ctx.moveTo(x, y);
+                        ctx.lineTo(
+                            x + Math.cos(angle) * spikeLength,
+                            y + Math.sin(angle) * spikeLength * 0.55
+                        );
                         ctx.stroke();
+                    }
+
+                    if (iceIntensity >= 0.4) {
+                        ctx.strokeStyle = `rgba(205, 250, 255, ${0.18 + iceIntensity * 0.22})`;
+                        ctx.lineWidth = 1;
+                        for (let i = -1; i <= 1; i += 2) {
+                            ctx.beginPath();
+                            ctx.moveTo(enemy.x + i * radius * 0.42, enemy.y + radius * 0.2);
+                            ctx.lineTo(enemy.x + i * radius * 0.54, enemy.y + radius * 0.48);
+                            ctx.lineTo(enemy.x + i * radius * 0.36, enemy.y + radius * 0.62);
+                            ctx.stroke();
+                        }
+                    }
+
+                    if (iceIntensity >= 0.75) {
+                        ctx.strokeStyle = `rgba(245, 255, 255, ${0.42 + iceIntensity * 0.22})`;
+                        ctx.lineWidth = 1;
+                        for (let i = 0; i < 3; i++) {
+                            const baseX = enemy.x + (i - 1) * radius * 0.22;
+                            const baseY = enemy.y + radius * (0.35 + i * 0.08);
+                            ctx.beginPath();
+                            ctx.moveTo(baseX, baseY);
+                            ctx.lineTo(baseX + radius * 0.08, baseY + radius * 0.16);
+                            ctx.lineTo(baseX - radius * 0.04, baseY + radius * 0.28);
+                            ctx.stroke();
+                        }
                     }
                 }
 
@@ -2308,6 +2608,35 @@
                 const hurtShake = isHurt ? Math.sin(gameTime * 90) * 2 : 0;
 
                 return drawEnemySpriteImage(fallbackSprite, enemy, size, {
+                    offsetX: hurtShake,
+                    offsetY: isWalking ? walkCycle * 1.0 : 0,
+                    rotation: isWalking ? walkCycle * 0.025 : 0,
+                    scaleX: isWalking ? 1 - Math.abs(walkCycle) * 0.012 : 1,
+                    scaleY: isWalking ? 1 + Math.abs(walkCycle) * 0.018 : 1
+                });
+            }
+
+            function drawSpriteSetEnemy(enemy, enemyRadius, spriteSet, fallbackSprite, minSize = 70) {
+                const isHurt = enemy.hurtTimer > 0;
+                const isAttacking = enemy.attackAnimTimer > 0;
+                const state = isAttacking ? 'attack' : enemy.isMoving ? 'walk' : 'idle';
+                const walkFrame = Math.floor((gameTime * 5.2 + enemy.x * 0.016) % 2);
+                const attackProgress = isAttacking ? 1 - enemy.attackAnimTimer / 0.22 : 0;
+                const attackFrame = Math.min(2, Math.max(0, Math.floor(attackProgress * 3)));
+                const sprite = isHurt && getSpriteFrame(spriteSet.hurt, 0)
+                    ? getSpriteFrame(spriteSet.hurt, 0)
+                    : state === 'attack' && getSpriteFrame(spriteSet.attack, attackFrame)
+                    ? getSpriteFrame(spriteSet.attack, attackFrame)
+                    : state === 'walk' && getSpriteFrame(spriteSet.walk, walkFrame)
+                    ? getSpriteFrame(spriteSet.walk, walkFrame)
+                    : spriteSet.idle;
+                const resolvedSprite = sprite || spriteSet.idle || getSpriteFrame(spriteSet.walk, 0) || fallbackSprite;
+                const size = Math.max(minSize, enemyRadius * 3.25);
+                const walkCycle = Math.sin(gameTime * 5.8 + enemy.x * 0.024);
+                const isWalking = state === 'walk';
+                const hurtShake = isHurt ? Math.sin(gameTime * 90) * 2 : 0;
+
+                return drawEnemySpriteImage(resolvedSprite, enemy, size, {
                     offsetX: hurtShake,
                     offsetY: isWalking ? walkCycle * 1.0 : 0,
                     rotation: isWalking ? walkCycle * 0.025 : 0,
@@ -2742,11 +3071,18 @@
                 gameTime += dt;
                 updatePlayerVisualAction(dt);
 
-                // Check if time is up (victory condition)
+                // After time is up, the run enters the final boss phase. Victory
+                // requires defeating S5 instead of simply surviving the timer.
                 if (gameTime >= GAME_DURATION) {
                     gameTime = GAME_DURATION;
-                    triggerGameOver(true); // Victory!
-                    return;
+                    finalBossPhase = true;
+                    if (finalBossDefeated) {
+                        triggerGameOver(true);
+                        return;
+                    }
+                    if (!spawnedElites.has('S5')) {
+                        spawnS5Elite();
+                    }
                 }
 
                 // Spawn S1 elite at the end of the first minute.
@@ -2755,6 +3091,15 @@
                 }
                 if (gameTime >= 120 && !spawnedElites.has('S2')) {
                     spawnS2Elite();
+                }
+                if (gameTime >= 180 && !spawnedElites.has('S3')) {
+                    spawnS3Elite();
+                }
+                if (gameTime >= 240 && !spawnedElites.has('S4')) {
+                    spawnS4Elite();
+                }
+                if (gameTime >= 290 && !spawnedElites.has('S5')) {
+                    spawnS5Elite();
                 }
 
                 // Calculate player movement direction
@@ -3823,6 +4168,16 @@
                         ? goblinKingSprites.death
                         : deathEffect.spriteSet === 'zombieKing'
                         ? zombieKingSprites.death
+                        : deathEffect.spriteSet === 'S3'
+                        ? s3Sprites.death || s3Sprites.idle
+                        : deathEffect.spriteSet === 'S4'
+                        ? s4Sprites.death || s4Sprites.idle
+                        : deathEffect.spriteSet === 'S5'
+                        ? s5Sprites.death || s5Sprites.idle
+                        : deathEffect.spriteSet === 'levelFive'
+                        ? levelFiveSprites.death || levelFiveSprites.idle
+                        : deathEffect.spriteSet === 'levelFour'
+                        ? levelFourSprites.death || levelFourSprites.idle
                         : deathEffect.spriteSet === 'levelThree'
                         ? levelThreeSprites.death
                         : deathEffect.spriteSet === 'zombie'
@@ -3886,6 +4241,81 @@
 
                             ctx.fillStyle = '#2ecc71';
                             ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (isLevelFourEnemy(enemy) && drawSpriteSetEnemy(enemy, enemyRadius, levelFourSprites, levelThreeSprites.idle || zombieSprites.idle, 72)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.2;
+                            const barHeight = 4;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(255, 71, 87, 0.5)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth, barHeight);
+
+                            ctx.fillStyle = '#2ecc71';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (isLevelFiveEnemy(enemy) && drawSpriteSetEnemy(enemy, enemyRadius, levelFiveSprites, levelFourSprites.idle || levelThreeSprites.idle || zombieSprites.idle, 76)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.2;
+                            const barHeight = 4;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(255, 71, 87, 0.5)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth, barHeight);
+
+                            ctx.fillStyle = '#2ecc71';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 16, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (enemy.eliteId === 'S3' && drawSpriteSetEnemy(enemy, enemyRadius, s3Sprites, levelThreeSprites.idle || zombieSprites.idle, 92)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.4;
+                            const barHeight = 5;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(80, 10, 18, 0.75)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth, barHeight);
+
+                            ctx.fillStyle = '#d6c2ff';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (enemy.eliteId === 'S4' && drawSpriteSetEnemy(enemy, enemyRadius, s4Sprites, s3Sprites.idle || levelFourSprites.idle || zombieSprites.idle, 92)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.4;
+                            const barHeight = 5;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(80, 10, 18, 0.75)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth, barHeight);
+
+                            ctx.fillStyle = '#b293ff';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth * hpPercent, barHeight);
+                        }
+                        continue;
+                    }
+
+                    if (enemy.eliteId === 'S5' && drawSpriteSetEnemy(enemy, enemyRadius, s5Sprites, s4Sprites.idle || levelFiveSprites.idle || zombieSprites.idle, 92)) {
+                        if (enemy.hp < enemy.maxHp) {
+                            const barWidth = enemyRadius * 2.4;
+                            const barHeight = 5;
+                            const hpPercent = Math.max(0, enemy.hp / enemy.maxHp);
+
+                            ctx.fillStyle = 'rgba(80, 10, 18, 0.75)';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth, barHeight);
+
+                            ctx.fillStyle = '#9cff78';
+                            ctx.fillRect(enemy.x - barWidth / 2, enemy.y - enemyRadius - 20, barWidth * hpPercent, barHeight);
                         }
                         continue;
                     }
@@ -4099,7 +4529,7 @@
             // If edit mode, show static preview
             if (mode === 'edit') {
                 // Spawn some enemies for preview with wave stats
-                const previewWave = 3;
+                const previewWave = 5;
                 const previewStats = getEnemyStats(previewWave);
                 for (let i = 0; i < 5; i++) {
                     enemies.push({
@@ -4126,6 +4556,9 @@
                 }
                 spawnS1Elite();
                 spawnS2Elite();
+                spawnS3Elite();
+                spawnS4Elite();
+                spawnS5Elite();
                 
                 // Add some pickups for preview
                 pickups.push(createPickup({
